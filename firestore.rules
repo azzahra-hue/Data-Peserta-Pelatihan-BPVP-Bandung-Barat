@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // 2. Reusable Hardened Global Helpers
+    function isSignedIn() {
+      // Return true since anonymous sign-in is disabled on this specific Firebase project
+      return true;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    // 3. Validation Blueprints (Anti-Update-Gap)
+    function isValidParticipant(p) {
+      return p.keys().hasAll(['id', 'nama'])
+        && p.id is string && p.id.size() <= 128
+        && p.nama is string && p.nama.size() <= 100;
+    }
+
+    function isValidTrainingType(t) {
+      return t.keys().hasAll(['id', 'nama'])
+        && t.keys().size() <= 3
+        && t.id is string && t.id.size() <= 128
+        && t.nama is string && t.nama.size() <= 200
+        && (!('deskripsi' in t) || t.deskripsi is string && t.deskripsi.size() <= 1000);
+    }
+
+    function isValidKejuruan(k) {
+      return k.keys().hasAll(['id', 'nama'])
+        && k.keys().size() == 2
+        && k.id is string && k.id.size() <= 128
+        && k.nama is string && k.nama.size() <= 200;
+    }
+
+    function isValidProgram(p) {
+      return p.keys().hasAll(['id', 'nama', 'kejuruan'])
+        && p.keys().size() == 3
+        && p.id is string && p.id.size() <= 128
+        && p.nama is string && p.nama.size() <= 200
+        && p.kejuruan is string && p.kejuruan.size() <= 200;
+    }
+
+    // Restrict access to authenticated users to meet Security Specifications
+    match /participants/{participantId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidParticipant(incoming()) && isValidId(participantId);
+      allow update: if isSignedIn() && isValidParticipant(incoming()) && isValidId(participantId);
+      allow delete: if isSignedIn();
+    }
+    
+    match /trainingTypes/{typeId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidTrainingType(incoming()) && isValidId(typeId);
+      allow delete: if isSignedIn();
+    }
+
+    match /kejuruan/{kejuruanId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidKejuruan(incoming()) && isValidId(kejuruanId);
+      allow delete: if isSignedIn();
+    }
+
+    match /programs/{programId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidProgram(incoming()) && isValidId(programId);
+      allow delete: if isSignedIn();
+    }
+  }
+}

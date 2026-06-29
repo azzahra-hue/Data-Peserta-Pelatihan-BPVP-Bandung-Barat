@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "Participant": {
+      "title": "Participant",
+      "description": "Peserta Pelatihan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "jenisPelatihan": { "type": "string" },
+        "nama": { "type": "string" },
+        "statusKelulusan": { "type": "string", "enum": ["Lulus", "Tidak Lulus", "Dalam Proses"] },
+        "alamat": { "type": "string" },
+        "jenisKelamin": { "type": "string", "enum": ["L", "P"] },
+        "tanggalLahir": { "type": "string" },
+        "usia": { "type": "number" },
+        "kategori": { "type": "string" },
+        "penyandangDisabilitas": { "type": "string", "enum": ["Ya", "Tidak"] },
+        "programPelatihan": { "type": "string" },
+        "kejuruan": { "type": "string" },
+        "tanggalPelatihan": { "type": "string" },
+        "statusKebekerjaan": { "type": "string", "enum": ["Bekerja", "Belum Bekerja", "Wirausaha"] },
+        "tempatBekerja": { "type": "string" },
+        "lokasi": { "type": "string" }
+      },
+      "required": ["id", "jenisPelatihan", "nama", "statusKelulusan", "alamat", "jenisKelamin", "tanggalLahir", "usia", "kategori", "penyandangDisabilitas", "programPelatihan", "kejuruan", "tanggalPelatihan", "statusKebekerjaan"]
+    },
+    "TrainingType": {
+      "title": "TrainingType",
+      "description": "Master Jenis Pelatihan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama": { "type": "string" },
+        "deskripsi": { "type": "string" }
+      },
+      "required": ["id", "nama"]
+    },
+    "Kejuruan": {
+      "title": "Kejuruan",
+      "description": "Master Kejuruan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama": { "type": "string" }
+      },
+      "required": ["id", "nama"]
+    },
+    "ProgramPelatihan": {
+      "title": "ProgramPelatihan",
+      "description": "Master Program Pelatihan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama": { "type": "string" },
+        "kejuruan": { "type": "string" }
+      },
+      "required": ["id", "nama", "kejuruan"]
+    }
+  },
+  "firestore": {
+    "participants": {
+      "schema": "Participant",
+      "description": "Koleksi data peserta pelatihan"
+    },
+    "trainingTypes": {
+      "schema": "TrainingType",
+      "description": "Koleksi master jenis pelatihan"
+    },
+    "kejuruan": {
+      "schema": "Kejuruan",
+      "description": "Koleksi master kejuruan"
+    },
+    "programs": {
+      "schema": "ProgramPelatihan",
+      "description": "Koleksi master program pelatihan"
+    }
+  }
+}

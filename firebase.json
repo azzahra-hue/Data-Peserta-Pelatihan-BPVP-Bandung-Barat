@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "database": "ai-studio-sisteminformasib-47792c11-4e8e-4725-aa82-d35a5f8c82be"
+  }
+}
