@@ -79,5 +79,10 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && isValidProgram(incoming()) && isValidId(programId);
       allow delete: if isSignedIn();
     }
+
+    match /settings/{settingsId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(settingsId);
+    }
   }
 }

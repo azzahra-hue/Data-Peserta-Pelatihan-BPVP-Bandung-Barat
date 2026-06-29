@@ -66,9 +66,16 @@ export interface ProgramPelatihan {
   kejuruan: string;
 }
 
+export interface AppSettings {
+  target2025: number;
+  target2026: number;
+  target2027: number;
+}
+
 export interface DatabaseState {
   participants: Participant[];
   trainingTypes: TrainingType[];
   kejuruanList: Kejuruan[];
   programs: ProgramPelatihan[];
+  settings?: AppSettings;
 }

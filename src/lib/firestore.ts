@@ -11,7 +11,7 @@ import {
   limit
 } from "firebase/firestore";
 import { db, auth } from "./auth";
-import { Participant } from "../types";
+import { Participant, AppSettings } from "../types";
 
 // Operation Type Enum as mandated by SKILL.md
 export enum OperationType {
@@ -376,3 +376,36 @@ export async function resetDatabaseToDefault(defaults: {
     console.error("Error resetting database:", error);
   }
 }
+
+// App Settings CRUD (e.g. participant targets)
+export function subscribeToSettings(
+  onUpdate: (settings: AppSettings) => void,
+  onError: (err: any) => void
+) {
+  const path = 'settings/general';
+  return onSnapshot(
+    doc(db, 'settings', 'general'),
+    (snapshot) => {
+      const data = snapshot.data() as AppSettings | undefined;
+      // Provide default settings if not exists
+      onUpdate(data || { target2025: 5000, target2026: 6000, target2027: 7000 });
+    },
+    (error) => {
+      try {
+        handleFirestoreError(error, OperationType.GET, path);
+      } catch (err) {
+        onError(err);
+      }
+    }
+  );
+}
+
+export async function saveSettings(settings: AppSettings): Promise<void> {
+  const path = 'settings/general';
+  try {
+    await setDoc(doc(db, 'settings', 'general'), settings);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+

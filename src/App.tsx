@@ -27,7 +27,8 @@ import {
   deleteProgram,
   seedMasterDataIfEmpty,
   seedParticipantsIfEmpty,
-  resetDatabaseToDefault
+  resetDatabaseToDefault,
+  subscribeToSettings
 } from "./lib/firestore";
 
 export default function App() {
@@ -44,11 +45,14 @@ export default function App() {
 
   // Subscribe and Seed master data on mount
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     let active = true;
     let unsubParticipants = () => {};
     let unsubTrainingTypes = () => {};
     let unsubKejuruan = () => {};
     let unsubPrograms = () => {};
+    let unsubSettings = () => {};
 
     const start = async () => {
       try {
@@ -72,7 +76,7 @@ export default function App() {
 
         if (!active) return;
 
-        // Subscribe to all 4 collections
+        // Subscribe to all collections
         unsubParticipants = subscribeToParticipants(
           (list) => {
             if (active) setDbState(prev => ({ ...prev, participants: list }));
@@ -100,6 +104,13 @@ export default function App() {
           },
           (err) => console.error("Subscription error programs:", err)
         );
+
+        unsubSettings = subscribeToSettings(
+          (settings) => {
+            if (active) setDbState(prev => ({ ...prev, settings }));
+          },
+          (err) => console.error("Subscription error settings:", err)
+        );
       } catch (err) {
         console.error("Auth / Database initialization failed:", err);
       }
@@ -113,8 +124,9 @@ export default function App() {
       unsubTrainingTypes();
       unsubKejuruan();
       unsubPrograms();
+      unsubSettings();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const handleUpdateDb = async (updates: Partial<DatabaseState>) => {
     try {
