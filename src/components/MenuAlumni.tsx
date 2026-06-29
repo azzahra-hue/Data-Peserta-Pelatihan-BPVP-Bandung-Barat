@@ -162,7 +162,7 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
         </div>
 
         <div className="min-h-[400px] h-full">
-           <AlumniMap />
+           <AlumniMap dbState={dbState} />
         </div>
       </div>
 

@@ -272,11 +272,26 @@ export default function SmartCSVImporter({
           }
         }
 
-        if (target.key === "statusKelulusan" && value) {
-          const cleanedVal = value.trim().toLowerCase();
-          if (cleanedVal.includes("lulus") || cleanedVal === "passed" || cleanedVal === "graduated" || cleanedVal === "success") {
+        if (target.key === "statusKelulusan" && value !== undefined && value !== null) {
+          const cleanedVal = String(value).trim().toLowerCase();
+          if (
+            cleanedVal === "1" || 
+            cleanedVal === "true" || 
+            cleanedVal === "lulus" || 
+            cleanedVal === "passed" || 
+            cleanedVal === "graduated" || 
+            cleanedVal === "success" || 
+            (cleanedVal.includes("lulus") && !cleanedVal.includes("tidak"))
+          ) {
             value = "Lulus";
-          } else if (cleanedVal.includes("tidak") || cleanedVal === "failed") {
+          } else if (
+            cleanedVal === "0" || 
+            cleanedVal === "false" || 
+            cleanedVal.includes("tidak") || 
+            cleanedVal.includes("belum") || 
+            cleanedVal === "failed" ||
+            cleanedVal === "gagal"
+          ) {
             value = "Tidak Lulus";
           } else {
             value = "Dalam Proses";
@@ -649,7 +664,7 @@ export default function SmartCSVImporter({
                 })}
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-100 sticky bottom-[-24px] bg-white z-10 w-[calc(100%+48px)] -ml-6 -mb-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button 
                   onClick={() => setStep("upload")}
                   className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl"
@@ -842,7 +857,7 @@ export default function SmartCSVImporter({
               </div>
 
               {/* Action Buttons for step 3 */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between p-4 border-t border-slate-100 sticky bottom-[-24px] bg-white z-10 w-[calc(100%+48px)] -ml-6 -mb-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button 
                   onClick={() => setStep("mapping")}
                   className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl"

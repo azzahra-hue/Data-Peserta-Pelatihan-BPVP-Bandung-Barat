@@ -80,9 +80,17 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
 
+    function isValidAppSettings(s) {
+      return s.keys().hasAll(['target2025', 'target2026', 'target2027'])
+        && s.keys().size() == 3
+        && s.target2025 is number
+        && s.target2026 is number
+        && s.target2027 is number;
+    }
+
     match /settings/{settingsId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && isValidId(settingsId);
+      allow create, update: if isSignedIn() && isValidAppSettings(incoming()) && isValidId(settingsId);
     }
   }
 }

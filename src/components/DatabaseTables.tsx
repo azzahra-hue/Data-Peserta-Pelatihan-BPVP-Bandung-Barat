@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Participant, TrainingType, Kejuruan, ProgramPelatihan, DatabaseState } from "../types";
-import { Plus, Edit2, Trash2, Search, Filter, RefreshCw, X, ChevronRight, Check, CheckSquare, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Filter, RefreshCw, X, ChevronRight, Check, CheckSquare, FileSpreadsheet, AlertTriangle, Sparkles } from "lucide-react";
 import SmartCSVImporter from "./SmartCSVImporter";
 
 interface DatabaseTablesProps {
@@ -24,8 +24,69 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
     newProgramsCount: number;
   } | null>(null);
 
-  const handleSmartCSVImport = (importedData: any[]) => {
+  const [isEnrichingLocations, setIsEnrichingLocations] = useState(false);
+  const [isLookingUpSingle, setIsLookingUpSingle] = useState(false);
+
+  const handleAILocationLookup = async () => {
+    if (!pTempatBekerja || !pTempatBekerja.trim()) return;
+    setIsLookingUpSingle(true);
+    try {
+      const res = await fetch("/api/ai/lookup-locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companies: [pTempatBekerja.trim()] })
+      });
+      const result = await res.json();
+      if (result && result.locations && result.locations[pTempatBekerja.trim()]) {
+        setPLokasi(result.locations[pTempatBekerja.trim()]);
+      }
+    } catch (error) {
+      console.error("Single location lookup failed:", error);
+    } finally {
+      setIsLookingUpSingle(false);
+    }
+  };
+
+  const handleSmartCSVImport = async (importedData: any[]) => {
     if (openCSVImporter === "participants") {
+      setIsEnrichingLocations(true);
+      
+      const enrichedParticipants = [...importedData];
+      const missingLocations = enrichedParticipants.filter(p => 
+        (p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha") && 
+        p.tempatBekerja && p.tempatBekerja.trim() !== "" &&
+        (!p.lokasi || p.lokasi.trim() === "")
+      );
+
+      if (missingLocations.length > 0) {
+        const uniqueCompanies = Array.from(new Set(missingLocations.map(p => p.tempatBekerja.trim())));
+        try {
+          const res = await fetch("/api/ai/lookup-locations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ companies: uniqueCompanies })
+          });
+          const result = await res.json();
+          if (result && result.locations) {
+            enrichedParticipants.forEach(p => {
+              if (
+                (p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha") && 
+                p.tempatBekerja && p.tempatBekerja.trim() !== "" &&
+                (!p.lokasi || p.lokasi.trim() === "")
+              ) {
+                const companyKey = p.tempatBekerja.trim();
+                if (result.locations[companyKey]) {
+                  p.lokasi = result.locations[companyKey];
+                }
+              }
+            });
+          }
+        } catch (error) {
+          console.error("AI location enrichment failed:", error);
+        }
+      }
+      setIsEnrichingLocations(false);
+
       // Automatic extraction of related master data for a seamless single-import experience
       const newTypes: TrainingType[] = [];
       const newKejuruan: Kejuruan[] = [];
@@ -35,7 +96,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       const existingKejuruanNames = new Set(dbState.kejuruanList.map(k => k.nama.toLowerCase().trim()));
       const existingProgramNames = new Set(dbState.programs.map(p => p.nama.toLowerCase().trim()));
 
-      importedData.forEach((p, idx) => {
+      enrichedParticipants.forEach((p, idx) => {
         // Extract training types
         if (p.jenisPelatihan) {
           const typeClean = p.jenisPelatihan.trim();
@@ -80,7 +141,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       });
 
       onUpdateDb({
-        participants: [...dbState.participants, ...importedData],
+        participants: [...dbState.participants, ...enrichedParticipants],
         trainingTypes: [...dbState.trainingTypes, ...newTypes],
         kejuruanList: [...dbState.kejuruanList, ...newKejuruan],
         programs: [...dbState.programs, ...newPrograms]
@@ -88,7 +149,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
       setImportSummary({
         source: "CSV",
-        participantsCount: importedData.length,
+        participantsCount: enrichedParticipants.length,
         newTypesCount: newTypes.length,
         newKejuruanCount: newKejuruan.length,
         newProgramsCount: newPrograms.length
@@ -1417,14 +1478,61 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
                   {/* Lokasi Kerja */}
                   <div>
-                    <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Lokasi Kerja (Kota/Kab)</label>
-                    <input
-                      type="text"
-                      value={pLokasi}
-                      onChange={(e) => setPLokasi(e.target.value)}
-                      placeholder="Contoh: Bandung Barat"
-                      className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
-                    />
+                    <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1 flex justify-between items-center">
+                      <span>Lokasi Kerja (Kota/Kab)</span>
+                      {pTempatBekerja && pTempatBekerja.trim() && (
+                        <button
+                          type="button"
+                          onClick={handleAILocationLookup}
+                          disabled={isLookingUpSingle}
+                          className="text-[9px] text-indigo-600 hover:text-indigo-800 font-bold uppercase tracking-wider flex items-center gap-0.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {isLookingUpSingle ? (
+                            <span>Mencari...</span>
+                          ) : (
+                            <>
+                              <Sparkles className="w-2.5 h-2.5 text-indigo-500 animate-pulse" />
+                              <span>Cari dengan AI</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={pLokasi}
+                        onChange={(e) => setPLokasi(e.target.value)}
+                        onBlur={async () => {
+                          if (pTempatBekerja && pTempatBekerja.trim() && (!pLokasi || !pLokasi.trim())) {
+                            setIsLookingUpSingle(true);
+                            try {
+                              const res = await fetch("/api/ai/lookup-locations", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ companies: [pTempatBekerja.trim()] })
+                              });
+                              const result = await res.json();
+                              if (result && result.locations && result.locations[pTempatBekerja.trim()]) {
+                                setPLokasi(result.locations[pTempatBekerja.trim()]);
+                              }
+                            } catch (error) {
+                              console.error("On blur location lookup failed:", error);
+                            } finally {
+                              setIsLookingUpSingle(false);
+                            }
+                          }
+                        }}
+                        placeholder="Contoh: Bandung Barat"
+                        className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 pr-8"
+                      />
+                      {isLookingUpSingle && (
+                        <span className="absolute right-2.5 top-2.5 flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Status */}
@@ -1507,6 +1615,25 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
         />
       )}
 
+      {isEnrichingLocations && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center z-[2000] animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full border border-slate-100 shadow-2xl text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100">
+                <Sparkles className="w-8 h-8 text-indigo-600 animate-bounce" />
+                <span className="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-display font-bold text-slate-800">Menemukan Lokasi Otomatis</h3>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Kecerdasan Buatan (Gemini AI) sedang memindai nama-nama perusahaan penempatan dan mencarikan lokasi daerahnya secara otomatis...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showConfirm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] animate-fade-in px-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
@@ -1547,41 +1674,49 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
       {importSummary && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1500] animate-fade-in px-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-indigo-600 shadow-xs">
-                <Check className="w-8 h-8 stroke-[3]" />
+          <div className="bg-white rounded-[2rem] max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up flex flex-col max-h-[90vh] overflow-hidden relative">
+            <button
+              onClick={() => setImportSummary(null)}
+              className="absolute top-4 right-4 p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-full transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="p-8 overflow-y-auto flex-1">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-indigo-600 shadow-xs">
+                  <Check className="w-8 h-8 stroke-[3]" />
+                </div>
+                <h4 className="text-xl font-display font-bold text-slate-800">Impor Data Berhasil!</h4>
+                <p className="text-xs font-semibold text-slate-500 mt-1">
+                  Data dari {importSummary.source} telah berhasil dipetakan secara cerdas.
+                </p>
               </div>
-              <h4 className="text-xl font-display font-bold text-slate-800">Impor Data Berhasil!</h4>
-              <p className="text-xs font-semibold text-slate-500 mt-1">
-                Data dari {importSummary.source} telah berhasil dipetakan secara cerdas.
+
+              <div className="mt-6 space-y-3 bg-slate-50/50 border border-slate-100 p-5 rounded-2xl">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-semibold">Peserta Pelatihan</span>
+                  <span className="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">+{importSummary.participantsCount} data</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-semibold">Jenis Pelatihan Baru</span>
+                  <span className="font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100">+{importSummary.newTypesCount} master</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-semibold">Kejuruan Baru</span>
+                  <span className="font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">+{importSummary.newKejuruanCount} master</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-semibold">Program Pelatihan Baru</span>
+                  <span className="font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100">+{importSummary.newProgramsCount} master</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-center font-bold text-emerald-600 bg-emerald-50 border border-emerald-100/50 py-2.5 px-4 rounded-xl mt-5">
+                ✓ Seluruh menu & tabel referensi tersinkronisasi seketika!
               </p>
             </div>
-
-            <div className="mt-6 space-y-3 bg-slate-50/50 border border-slate-100 p-5 rounded-2xl">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-semibold">Peserta Pelatihan</span>
-                <span className="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">+{importSummary.participantsCount} data</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-semibold">Jenis Pelatihan Baru</span>
-                <span className="font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100">+{importSummary.newTypesCount} master</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-semibold">Kejuruan Baru</span>
-                <span className="font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">+{importSummary.newKejuruanCount} master</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-semibold">Program Pelatihan Baru</span>
-                <span className="font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100">+{importSummary.newProgramsCount} master</span>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-center font-bold text-emerald-600 bg-emerald-50 border border-emerald-100/50 py-2.5 px-4 rounded-xl mt-5">
-              ✓ Seluruh menu & tabel referensi tersinkronisasi seketika!
-            </p>
-
-            <div className="flex justify-center mt-6">
+            
+            <div className="p-6 bg-white border-t border-slate-100 shrink-0">
               <button
                 onClick={() => setImportSummary(null)}
                 className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all active:scale-95 shadow-sm cursor-pointer"

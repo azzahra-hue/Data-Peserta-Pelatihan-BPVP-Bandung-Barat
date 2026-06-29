@@ -18,14 +18,23 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Keep inputs updated when dbState.settings is loaded
+  // Keep inputs updated when dbState.settings is loaded (only when not editing)
   useEffect(() => {
+    if (dbState.settings && !isEditing) {
+      setInput2025(dbState.settings.target2025);
+      setInput2026(dbState.settings.target2026);
+      setInput2027(dbState.settings.target2027);
+    }
+  }, [dbState.settings?.target2025, dbState.settings?.target2026, dbState.settings?.target2027, isEditing]);
+
+  const handleOpenEdit = () => {
     if (dbState.settings) {
       setInput2025(dbState.settings.target2025);
       setInput2026(dbState.settings.target2026);
       setInput2027(dbState.settings.target2027);
     }
-  }, [dbState.settings]);
+    setIsEditing(true);
+  };
 
   // Filter participants to active years (2025, 2026, 2027)
   const activeParticipants = dbState.participants.filter(p => {
@@ -146,7 +155,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
       <div className="flex justify-between items-center mt-8 mb-4 px-2">
         <h3 className="text-xl font-display font-bold text-slate-800">Ketercapaian Target Tahunan</h3>
         <button
-          onClick={() => setIsEditing(true)}
+          onClick={handleOpenEdit}
           className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
         >
           <Sliders className="w-3.5 h-3.5" />

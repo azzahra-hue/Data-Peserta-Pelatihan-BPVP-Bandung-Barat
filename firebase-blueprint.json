@@ -55,6 +55,17 @@
         "kejuruan": { "type": "string" }
       },
       "required": ["id", "nama", "kejuruan"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Pengaturan Aplikasi (Target Peserta)",
+      "type": "object",
+      "properties": {
+        "target2025": { "type": "number" },
+        "target2026": { "type": "number" },
+        "target2027": { "type": "number" }
+      },
+      "required": ["target2025", "target2026", "target2027"]
     }
   },
   "firestore": {
@@ -73,6 +84,10 @@
     "programs": {
       "schema": "ProgramPelatihan",
       "description": "Koleksi master program pelatihan"
+    },
+    "settings": {
+      "schema": "AppSettings",
+      "description": "Koleksi pengaturan aplikasi"
     }
   }
 }

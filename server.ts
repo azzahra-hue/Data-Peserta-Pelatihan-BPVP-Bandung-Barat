@@ -452,6 +452,94 @@ Berdasarkan ranah Pengelolaan (Management) dan Evaluasi (Evaluation) Teknologi P
   }
 });
 
+// Automatically lookup company locations using Gemini
+app.post("/api/ai/lookup-locations", async (req, res) => {
+  try {
+    const { companies } = req.body;
+    if (!companies || !Array.isArray(companies) || companies.length === 0) {
+      return res.json({ locations: {} });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      // Graceful fallback to default local cities if API key is not configured
+      const fallbackMap: Record<string, string> = {};
+      companies.forEach(company => {
+        const cleanName = company.toLowerCase();
+        if (cleanName.includes("ciater") || cleanName.includes("subang")) {
+          fallbackMap[company] = "Subang";
+        } else if (cleanName.includes("nabati") || cleanName.includes("majalengka")) {
+          fallbackMap[company] = "Majalengka";
+        } else if (cleanName.includes("cimahi")) {
+          fallbackMap[company] = "Cimahi";
+        } else if (cleanName.includes("jakarta") || cleanName.includes("bulog")) {
+          fallbackMap[company] = "Jakarta";
+        } else if (cleanName.includes("ranch")) {
+          fallbackMap[company] = "Subang";
+        } else if (cleanName.includes("lancar jaya")) {
+          fallbackMap[company] = "Bandung";
+        } else if (cleanName.includes("seribu kopi")) {
+          fallbackMap[company] = "Cimahi";
+        } else if (cleanName.includes("radiance")) {
+          fallbackMap[company] = "Bandung";
+        } else if (cleanName.includes("gerlink")) {
+          fallbackMap[company] = "Bandung";
+        } else if (cleanName.includes("pesisir barat") || cleanName.includes("lampung")) {
+          fallbackMap[company] = "Lampung";
+        } else if (cleanName.includes("vienna") || cleanName.includes("winkel")) {
+          fallbackMap[company] = "Bandung";
+        } else {
+          fallbackMap[company] = "Bandung Barat"; // default local region
+        }
+      });
+      return res.json({ locations: fallbackMap });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build"
+        }
+      }
+    });
+
+    const systemPrompt = `You are an AI Location Finder for companies in Indonesia. 
+Given a list of company, institution, or school names, determine their primary city, district, or regency in Indonesia (preferring Bandung Barat, Bandung, Cimahi, Subang, West Java cities, or Jakarta if appropriate).
+For each company in the list, return ONLY a clean city/district name (e.g. "Bandung Barat", "Bandung", "Cimahi", "Subang", "Jakarta", "Majalengka", "Cianjur", "Purwakarta", etc.). Do not include full street addresses, just the city/regency name.
+If a company name is very generic, local, or unclear, infer a likely West Java city/district based on local context.
+You MUST respond with a JSON object where the keys are the EXACT company names from the input and the values are their corresponding city/district names.`;
+
+    const userPrompt = `List of company names to lookup:
+${JSON.stringify(companies, null, 2)}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.1,
+        responseMimeType: "application/json"
+      }
+    });
+
+    if (response && response.text) {
+      const parsed = JSON.parse(response.text.trim());
+      return res.json({ locations: parsed });
+    } else {
+      throw new Error("Empty response from Gemini API");
+    }
+  } catch (err: any) {
+    console.error("Error looking up company locations:", err);
+    // Graceful fallback
+    const fallbackMap: Record<string, string> = {};
+    req.body.companies?.forEach((company: string) => {
+      fallbackMap[company] = "Bandung Barat";
+    });
+    res.json({ locations: fallbackMap });
+  }
+});
+
 // Vite middleware and fallback setup
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
