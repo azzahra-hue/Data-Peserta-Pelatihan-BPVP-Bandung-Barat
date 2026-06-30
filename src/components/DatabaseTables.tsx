@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Participant, TrainingType, Kejuruan, ProgramPelatihan, DatabaseState } from "../types";
 import { Plus, Edit2, Trash2, Search, Filter, RefreshCw, X, ChevronRight, Check, CheckSquare, FileSpreadsheet, AlertTriangle, Sparkles } from "lucide-react";
 import SmartCSVImporter from "./SmartCSVImporter";
@@ -318,7 +319,6 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       let year = "25";
       if (trimmed.includes("2025") || trimmed.endsWith("25") || trimmed.startsWith("25")) year = "25";
       else if (trimmed.includes("2026") || trimmed.endsWith("26") || trimmed.startsWith("26")) year = "26";
-      else if (trimmed.includes("2027") || trimmed.endsWith("27") || trimmed.startsWith("27")) year = "27";
       else if (trimmed.includes("2024") || trimmed.endsWith("24") || trimmed.startsWith("24")) year = "24";
       return `15-May-${year}`;
     };
@@ -338,7 +338,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       tanggalLahir: pTanggalLahir || "01/01/2000",
       usia: Number(pUsia) || 25,
       pendidikanTerakhir: pPendidikanTerakhir || "",
-      disabilitasTipe: pDisabilitasTipe || "",
+      disabilitasTipe: pDisabilitasTipe || "Tidak",
       penyandangDisabilitas: pPenyandangDisabilitas || "Tidak",
       pernahBekerjaLuarNegeri: pPernahBekerjaLuarNegeri || "Tidak",
       berminatBekerjaLuarNegeri: pBerminatBekerjaLuarNegeri || "Tidak",
@@ -1004,8 +1004,8 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       )}
 
       {/* FULL PARTICIPANT MODAL FORM (CREATE / EDIT) */}
-      {showPartForm && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in" id="modal-container">
+      {showPartForm && createPortal(
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-start justify-center pt-8 p-4 z-50 overflow-y-auto animate-fade-in" id="modal-container">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-2xl w-full max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
@@ -1593,7 +1593,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
             </form>
 
           </div>
-        </div>
+        </div>, document.body
       )}
 
       {openCSVImporter && (
@@ -1615,8 +1615,8 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
         />
       )}
 
-      {isEnrichingLocations && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center z-[2000] animate-fade-in">
+      {isEnrichingLocations && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-start pt-32 z-[2000] animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full border border-slate-100 shadow-2xl text-center space-y-4">
             <div className="flex justify-center">
               <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100">
@@ -1631,11 +1631,11 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
               </p>
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
 
-      {showConfirm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] animate-fade-in px-4">
+      {showConfirm && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-8 z-[1000] animate-fade-in px-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
             <div className="flex items-start gap-4">
               <div className={`p-3.5 rounded-2xl shrink-0 ${confirmConfig.isDanger ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'}`}>
@@ -1669,12 +1669,12 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
 
-      {importSummary && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1500] animate-fade-in px-4">
-          <div className="bg-white rounded-[2rem] max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up flex flex-col max-h-[90vh] overflow-hidden relative">
+      {importSummary && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-8 z-[1500] animate-fade-in px-4 p-4">
+          <div className="bg-white rounded-[2rem] max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up flex flex-col max-h-[85vh] overflow-hidden relative">
             <button
               onClick={() => setImportSummary(null)}
               className="absolute top-4 right-4 p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-full transition-colors z-10"
@@ -1725,7 +1725,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
     </div>
   );

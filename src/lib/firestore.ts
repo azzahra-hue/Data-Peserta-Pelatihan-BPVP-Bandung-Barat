@@ -388,7 +388,7 @@ export function subscribeToSettings(
     (snapshot) => {
       const data = snapshot.data() as AppSettings | undefined;
       // Provide default settings if not exists
-      onUpdate(data || { target2025: 5000, target2026: 6000, target2027: 7000 });
+      onUpdate(data || { target2025: 5000, target2026: 6000 });
     },
     (error) => {
       try {

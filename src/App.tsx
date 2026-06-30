@@ -79,7 +79,68 @@ export default function App() {
         // Subscribe to all collections
         unsubParticipants = subscribeToParticipants(
           (list) => {
-            if (active) setDbState(prev => ({ ...prev, participants: list }));
+            if (active) {
+              // Self-healing: Find any participants with inconsistent disabilitas fields and fix them in background
+              const needsHealing = list.filter(p => {
+                if (p.penyandangDisabilitas === "Ya" || !p.disabilitasTipe || p.disabilitasTipe.trim() === "-" || p.disabilitasTipe.trim().toLowerCase() === "none") {
+                  const tipeDis = (p.disabilitasTipe || "").trim().toLowerCase();
+                  const isNotDisabled = 
+                    !tipeDis ||
+                    tipeDis === "tidak" || 
+                    tipeDis === "tidak ada" || 
+                    tipeDis === "tidak ada disabilitas" || 
+                    tipeDis === "tidak disabilitas" || 
+                    tipeDis === "normal" || 
+                    tipeDis === "-" || 
+                    tipeDis === "none" || 
+                    tipeDis === "t" || 
+                    tipeDis === "n" || 
+                    tipeDis === "no" || 
+                    tipeDis === "bukan";
+                  
+                  if (isNotDisabled && p.penyandangDisabilitas === "Ya") {
+                    return true;
+                  }
+                  if (isNotDisabled && (!p.disabilitasTipe || p.disabilitasTipe.trim() !== "Tidak")) {
+                     return true; // Needs normalization of the string to "Tidak"
+                  }
+                }
+                return false;
+              });
+
+              if (needsHealing.length > 0) {
+                console.log(`Self-healing: fixing ${needsHealing.length} participants with incorrect disability status...`);
+                needsHealing.forEach(p => {
+                  const healed = { ...p, penyandangDisabilitas: "Tidak" as const, disabilitasTipe: "Tidak" };
+                  saveParticipant(healed).catch(err => console.error("Self healing failed for", p.id, err));
+                });
+              }
+
+              // Apply the same correction inline to the displayed list instantly
+              const correctedList = list.map(p => {
+                const tipeDis = (p.disabilitasTipe || "").trim().toLowerCase();
+                const isNotDisabled = 
+                  !tipeDis ||
+                  tipeDis === "tidak" || 
+                  tipeDis === "tidak ada" || 
+                  tipeDis === "tidak ada disabilitas" || 
+                  tipeDis === "tidak disabilitas" || 
+                  tipeDis === "normal" || 
+                  tipeDis === "-" || 
+                  tipeDis === "none" || 
+                  tipeDis === "t" || 
+                  tipeDis === "n" || 
+                  tipeDis === "no" || 
+                  tipeDis === "bukan";
+                
+                if (isNotDisabled) {
+                  return { ...p, penyandangDisabilitas: "Tidak", disabilitasTipe: "Tidak" };
+                }
+                return p;
+              });
+
+              setDbState(prev => ({ ...prev, participants: correctedList }));
+            }
           },
           (err) => console.error("Subscription error participants:", err)
         );
@@ -127,6 +188,81 @@ export default function App() {
       unsubSettings();
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !dbState.participants.length) return;
+
+    const existingProgramNames = new Set(dbState.programs.map(p => p.nama.toLowerCase().trim()));
+    const existingTypeNames = new Set(dbState.trainingTypes.map(t => t.nama.toLowerCase().trim()));
+    const existingKejuruanNames = new Set(dbState.kejuruanList.map(k => k.nama.toLowerCase().trim()));
+    
+    const missingPrograms: ProgramPelatihan[] = [];
+    const missingTypes: TrainingType[] = [];
+    const missingKejuruan: Kejuruan[] = [];
+
+    dbState.participants.forEach((p, idx) => {
+      if (p.programPelatihan) {
+        const programClean = p.programPelatihan.trim();
+        const kejuruanClean = (p.kejuruan || "").trim();
+        if (programClean && !existingProgramNames.has(programClean.toLowerCase())) {
+          const id = `pr-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+          missingPrograms.push({
+            id,
+            nama: programClean,
+            kejuruan: kejuruanClean || "Umum"
+          });
+          existingProgramNames.add(programClean.toLowerCase());
+        }
+      }
+      
+      if (p.jenisPelatihan) {
+        const typeClean = p.jenisPelatihan.trim();
+        if (typeClean && !existingTypeNames.has(typeClean.toLowerCase())) {
+          const id = `t-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+          missingTypes.push({
+            id,
+            nama: typeClean,
+            deskripsi: "Ditambahkan otomatis"
+          });
+          existingTypeNames.add(typeClean.toLowerCase());
+        }
+      }
+      
+      if (p.kejuruan) {
+        const kejuruanClean = p.kejuruan.trim();
+        if (kejuruanClean && !existingKejuruanNames.has(kejuruanClean.toLowerCase())) {
+          const id = `k-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+          missingKejuruan.push({
+            id,
+            nama: kejuruanClean
+          });
+          existingKejuruanNames.add(kejuruanClean.toLowerCase());
+        }
+      }
+    });
+
+    if (missingPrograms.length > 0 || missingTypes.length > 0 || missingKejuruan.length > 0) {
+      console.log(`Self-healing: adding ${missingPrograms.length} programs, ${missingTypes.length} types, ${missingKejuruan.length} kejuruan...`);
+      
+      missingPrograms.forEach(prog => {
+        saveProgram(prog).catch(err => console.error("Self healing failed for program", prog.id, err));
+      });
+      missingTypes.forEach(t => {
+        saveTrainingType(t).catch(err => console.error("Self healing failed for type", t.id, err));
+      });
+      missingKejuruan.forEach(k => {
+        saveKejuruan(k).catch(err => console.error("Self healing failed for kejuruan", k.id, err));
+      });
+      
+      // Update local state optimisticly
+      setDbState(prev => ({
+        ...prev,
+        programs: [...prev.programs, ...missingPrograms],
+        trainingTypes: [...prev.trainingTypes, ...missingTypes],
+        kejuruanList: [...prev.kejuruanList, ...missingKejuruan]
+      }));
+    }
+  }, [dbState.participants, dbState.programs, dbState.trainingTypes, dbState.kejuruanList, isAuthenticated]);
 
   const handleUpdateDb = async (updates: Partial<DatabaseState>) => {
     try {
@@ -233,7 +369,7 @@ export default function App() {
       onLogout={() => setIsAuthenticated(false)}
     >
       {activeMenu === "home" && <MenuHome dbState={dbState} />}
-      {activeMenu === "peserta" && <MenuPeserta participants={dbState.participants} />}
+      {activeMenu === "peserta" && <MenuPeserta dbState={dbState} />}
       {activeMenu === "sebaran" && <MenuSebaran dbState={dbState} />}
       {activeMenu === "alumni" && <MenuAlumni dbState={dbState} />}
       {activeMenu === "import" && (

@@ -69,7 +69,6 @@ export interface ProgramPelatihan {
 export interface AppSettings {
   target2025: number;
   target2026: number;
-  target2027: number;
 }
 
 export interface DatabaseState {

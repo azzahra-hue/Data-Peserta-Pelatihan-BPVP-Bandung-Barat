@@ -69,7 +69,7 @@ export default function AlumniMap({ dbState }: AlumniMapProps) {
 
   // Extract placed participants
   const placedAlumni = (dbState?.participants || []).filter(
-    (p) => p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha"
+    (p) => p.statusKelulusan === "Lulus" && (p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha")
   );
 
   const dynamicLocationsMap: Record<string, { id: string; name: string; position: google.maps.LatLngLiteral; count: number }> = {};

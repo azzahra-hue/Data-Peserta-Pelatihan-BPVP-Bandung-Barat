@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from "react-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Users, Briefcase, BookOpen, Sliders, Settings, Check, X } from 'lucide-react';
 import { DatabaseState } from '../types';
@@ -14,7 +15,6 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
   // Local state for target inputs, synchronized with dbState.settings
   const [input2025, setInput2025] = useState(dbState.settings?.target2025 ?? 5000);
   const [input2026, setInput2026] = useState(dbState.settings?.target2026 ?? 6000);
-  const [input2027, setInput2027] = useState(dbState.settings?.target2027 ?? 7000);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -23,28 +23,24 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
     if (dbState.settings && !isEditing) {
       setInput2025(dbState.settings.target2025);
       setInput2026(dbState.settings.target2026);
-      setInput2027(dbState.settings.target2027);
     }
-  }, [dbState.settings?.target2025, dbState.settings?.target2026, dbState.settings?.target2027, isEditing]);
+  }, [dbState.settings?.target2025, dbState.settings?.target2026, isEditing]);
 
   const handleOpenEdit = () => {
     if (dbState.settings) {
       setInput2025(dbState.settings.target2025);
       setInput2026(dbState.settings.target2026);
-      setInput2027(dbState.settings.target2027);
     }
     setIsEditing(true);
   };
 
-  // Filter participants to active years (2025, 2026, 2027)
+  // Filter participants to active years (2025, 2026)
   const activeParticipants = dbState.participants.filter(p => {
     if (!p.tanggalPelatihan) return false;
     return p.tanggalPelatihan.endsWith("25") || 
            p.tanggalPelatihan.endsWith("26") || 
-           p.tanggalPelatihan.endsWith("27") ||
            p.tanggalPelatihan.includes("2025") ||
-           p.tanggalPelatihan.includes("2026") ||
-           p.tanggalPelatihan.includes("2027");
+           p.tanggalPelatihan.includes("2026");
   });
 
   const totalPesertaAllTime = activeParticipants.length;
@@ -53,7 +49,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
   ).length;
   const totalPrograms = dbState.programs.length || 45;
 
-  const trendData = ["2025", "2026", "2027"].map(y => {
+  const trendData = ["2025", "2026"].map(y => {
     const suffix = y.slice(2);
     const yearlyPeserta = dbState.participants.filter(p => {
       if (!p.tanggalPelatihan) return false;
@@ -72,15 +68,13 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
   // Target values defined by settings or defaults
   const target2025 = dbState.settings?.target2025 ?? 5000;
   const target2026 = dbState.settings?.target2026 ?? 6000;
-  const target2027 = dbState.settings?.target2027 ?? 7000;
 
   const targetMap: Record<string, number> = {
     "2025": target2025,
-    "2026": target2026,
-    "2027": target2027
+    "2026": target2026
   };
 
-  const targetsData = ["2025", "2026", "2027"].map((y, idx) => {
+  const targetsData = ["2025", "2026"].map((y, idx) => {
     const suffix = y.slice(2);
     const yearlyPeserta = dbState.participants.filter(p => {
       if (!p.tanggalPelatihan) return false;
@@ -113,7 +107,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
             <div className="w-10 h-10 bg-white/40 rounded-xl flex items-center justify-center text-teal-900 border border-teal-200/50">
               <Users className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-teal-900">Total Peserta (2025 - 2027)</p>
+            <p className="text-sm font-bold text-teal-900">Total Peserta (2025 - 2026)</p>
           </div>
           <p className="text-5xl font-display font-bold text-teal-950">{totalPesertaAllTime.toLocaleString()}</p>
         </div>
@@ -122,7 +116,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
             <div className="w-10 h-10 bg-white/40 rounded-xl flex items-center justify-center text-yellow-900 border border-yellow-200/50">
               <Briefcase className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-yellow-900">Alumni Bekerja (2025 - 2027)</p>
+            <p className="text-sm font-bold text-yellow-900">Alumni Bekerja (2025 - 2026)</p>
           </div>
           <p className="text-5xl font-display font-bold text-yellow-950">{totalAlumniBekerjaAllTime.toLocaleString()}</p>
         </div>
@@ -138,7 +132,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
       </div>
 
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[450px] flex flex-col">
-        <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Tren Peserta & Penempatan Kerja (2025 - 2027)</h3>
+        <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Tren Peserta & Penempatan Kerja (2025 - 2026)</h3>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -207,8 +201,8 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
         ))}
       </div>
 
-      {isEditing && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1500] animate-fade-in px-4">
+      {isEditing && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-8 z-[1500] animate-fade-in px-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
@@ -234,8 +228,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
               try {
                 await saveSettings({
                   target2025: Number(input2025),
-                  target2026: Number(input2026),
-                  target2027: Number(input2027)
+                  target2026: Number(input2026)
                 });
                 setSaveSuccess(true);
                 setTimeout(() => {
@@ -272,18 +265,6 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Tahun 2027</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={input2027}
-                  onChange={(e) => setInput2027(Math.max(1, parseInt(e.target.value) || 0))}
-                  className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                />
-              </div>
-
               {saveSuccess && (
                 <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-xs font-bold animate-fade-in">
                   <Check className="w-4 h-4" />
@@ -309,7 +290,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
               </div>
             </form>
           </div>
-        </div>
+        </div>, document.body
       )}
     </div>
   );

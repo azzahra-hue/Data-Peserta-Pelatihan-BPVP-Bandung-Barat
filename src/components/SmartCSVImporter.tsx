@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Play, HelpCircle, Edit2, RotateCcw, Plus } from "lucide-react";
 import { Participant, TrainingType, Kejuruan, ProgramPelatihan } from "../types";
 
@@ -330,7 +331,6 @@ export default function SmartCSVImporter({
           let year = "25";
           if (trimmed.includes("2025") || trimmed.endsWith("25") || trimmed.startsWith("25")) year = "25";
           else if (trimmed.includes("2026") || trimmed.endsWith("26") || trimmed.startsWith("26")) year = "26";
-          else if (trimmed.includes("2027") || trimmed.endsWith("27") || trimmed.startsWith("27")) year = "27";
           else if (trimmed.includes("2024") || trimmed.endsWith("24") || trimmed.startsWith("24")) year = "24";
           return `15-May-${year}`;
         };
@@ -339,10 +339,27 @@ export default function SmartCSVImporter({
         
         // Derive penyandangDisabilitas status ('Ya' | 'Tidak') from disabilitasTipe
         const tipeDis = (item.disabilitasTipe || "").trim().toLowerCase();
-        if (tipeDis && tipeDis !== "tidak" && tipeDis !== "tidak ada" && tipeDis !== "-" && tipeDis !== "none") {
+        const isNotDisabled = 
+          !tipeDis ||
+          tipeDis === "tidak" || 
+          tipeDis === "tidak ada" || 
+          tipeDis === "tidak ada disabilitas" || 
+          tipeDis === "tidak disabilitas" || 
+          tipeDis === "normal" || 
+          tipeDis === "-" || 
+          tipeDis === "none" || 
+          tipeDis === "t" || 
+          tipeDis === "n" || 
+          tipeDis === "no" || 
+          tipeDis === "bukan";
+
+        if (!isNotDisabled) {
           item.penyandangDisabilitas = "Ya";
         } else {
           item.penyandangDisabilitas = "Tidak";
+          if (tipeDis === "t" || tipeDis === "n" || tipeDis === "no" || tipeDis === "none" || tipeDis === "-") {
+            item.disabilitasTipe = "Tidak";
+          }
         }
         
         if (!item.statusKebekerjaan) item.statusKebekerjaan = "Belum Bekerja";
@@ -485,8 +502,8 @@ export default function SmartCSVImporter({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-start justify-center pt-8 z-50 animate-fade-in p-4">
       <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 max-w-5xl w-full h-[85vh] flex flex-col overflow-hidden relative">
         
         {/* Toast Notifikasi */}
@@ -899,7 +916,7 @@ export default function SmartCSVImporter({
       </div>
 
       {showConfirmIgnoreErrors && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[2000] animate-fade-in px-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-8 z-[2000] animate-fade-in px-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
             <div className="flex items-start gap-4">
               <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl shrink-0">
@@ -930,6 +947,7 @@ export default function SmartCSVImporter({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

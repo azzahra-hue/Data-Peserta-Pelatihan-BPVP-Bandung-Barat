@@ -8,7 +8,7 @@ interface Props {
 
 export default function YearDropdown({ value, onChange }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const years = ["2025", "2026", "2027"];
+  const years = ["2025", "2026"];
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

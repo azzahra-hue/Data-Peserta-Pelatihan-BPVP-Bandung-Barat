@@ -26,7 +26,11 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
   });
 
   // Calculate dynamic metrics from real database
+  const totalPesertaFilter = filtered.length;
   const countLulus = filtered.filter(p => p.statusKelulusan === "Lulus").length;
+  const countTidakLulus = filtered.filter(p => p.statusKelulusan === "Tidak Lulus" || p.statusKelulusan === "Drop Out" || p.statusKelulusan === "Dikeluarkan").length;
+  const countDalamProses = filtered.filter(p => p.statusKelulusan === "Dalam Proses").length;
+  
   const placedAlumni = filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja");
   const uniqueCompanies = Array.from(new Set(placedAlumni.map(p => p.tempatBekerja).filter(Boolean)));
   
@@ -48,7 +52,8 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
   };
 
   const totalBekerja = statusKerja.tetap + statusKerja.owner + statusKerja.kontrak;
-  const totalAlumni = (totalBekerja + statusKerja.belumBekerja) || 1; // avoid division by zero
+  const totalAlumni = countLulus || 1; // avoid division by zero, explicitly use countLulus (Alumni)
+
 
   // Group by lokasi dynamically
   const locationCounts: Record<string, number> = {};
@@ -101,9 +106,21 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
       <FiltersGroup filters={filters} setFilters={setFilters} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white border-l-[12px] border-[#A8E6CF] p-8 rounded-[2.5rem] shadow-sm">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Alumni Lulus</h4>
-          <p className="text-5xl font-display font-bold text-slate-800">{summary.lulus.toLocaleString()}</p>
+        <div className="bg-white border-l-[12px] border-[#A8E6CF] p-8 rounded-[2.5rem] shadow-sm flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Alumni (Peserta Lulus)</h4>
+            <p className="text-5xl font-display font-bold text-slate-800">{summary.lulus.toLocaleString()}</p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-100 flex gap-4 text-xs font-medium">
+            <div className="flex items-center gap-1.5 text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+              {totalPesertaFilter} Total
+            </div>
+            <div className="flex items-center gap-1.5 text-rose-500">
+              <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+              {countTidakLulus} Tidak Lulus
+            </div>
+          </div>
         </div>
         <div className="bg-white border-l-[12px] border-[#FACC15] p-8 rounded-[2.5rem] shadow-sm">
           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mitra Industri</h4>

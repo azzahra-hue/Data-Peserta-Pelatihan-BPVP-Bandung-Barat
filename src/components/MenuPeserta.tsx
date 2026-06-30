@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from "react-dom";
 import YearDropdown from './YearDropdown';
 import FiltersGroup from './FiltersGroup';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { Participant } from '../types';
-import { Search, Briefcase, MapPin, X, CheckCircle, RefreshCw, User, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Participant, DatabaseState } from '../types';
+import { Search, Briefcase, MapPin, X, CheckCircle, RefreshCw, User, ClipboardList, AlertTriangle, Settings } from 'lucide-react';
 import { 
   saveParticipant, 
-  resetParticipantsToDefault 
+  resetParticipantsToDefault,
+  saveSettings
 } from '../lib/firestore';
 
 export const DEFAULT_PARTICIPANTS: Participant[] = [
@@ -283,15 +285,29 @@ export const DEFAULT_PARTICIPANTS: Participant[] = [
 ];
 
 interface MenuPesertaProps {
-  participants: Participant[];
+  dbState: DatabaseState;
 }
 
-export default function MenuPeserta({ participants }: MenuPesertaProps) {
+export default function MenuPeserta({ dbState }: MenuPesertaProps) {
+  const participants = dbState.participants;
   const [year, setYear] = useState("2025");
   const [filters, setFilters] = useState({ jenis: "", kejuruan: "", program: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Settings state
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [input2025, setInput2025] = useState(dbState.settings?.target2025 ?? 5000);
+  const [input2026, setInput2026] = useState(dbState.settings?.target2026 ?? 6000);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (dbState.settings && !isEditingSettings) {
+      setInput2025(dbState.settings.target2025);
+      setInput2026(dbState.settings.target2026);
+    }
+  }, [dbState.settings?.target2025, dbState.settings?.target2026, isEditingSettings]);
 
   // Edit State for Quick Updater
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
@@ -349,8 +365,22 @@ export default function MenuPeserta({ participants }: MenuPesertaProps) {
     setNewLokasi(p.lokasi || "");
   };
 
-  // Dynamic multiplier for macro stats represent overall statistics
-  const m = year === "2025" ? 1 : year === "2026" ? 1.15 : 1.3;
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await saveSettings({
+        target2025: Number(input2025),
+        target2026: Number(input2026)
+      });
+      setIsEditingSettings(false);
+      showToast("Target berhasil diperbarui & disimpan ke Cloud!");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Filter participants based on Year, Dropdowns, and Search
   const filteredParticipants = participants.filter(p => {
@@ -377,8 +407,8 @@ export default function MenuPeserta({ participants }: MenuPesertaProps) {
 
   // Calculate stats dynamically from actual live filtered participants
   const totalLive = filteredParticipants.length;
-  const targetPeserta = Math.round(5 * m); // Scaled target for sample size (5 per year)
-  const progressPercentage = Math.round((totalLive / targetPeserta) * 100);
+  const targetPeserta = year === "2025" ? (dbState.settings?.target2025 ?? 5000) : year === "2026" ? (dbState.settings?.target2026 ?? 6000) : 7000;
+  const progressPercentage = targetPeserta > 0 ? Math.round((totalLive / targetPeserta) * 100) : 0;
 
   const progressData = [
     { name: "Tercapai", value: totalLive },
@@ -424,10 +454,17 @@ export default function MenuPeserta({ participants }: MenuPesertaProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Progress Card */}
-        <div className="col-span-1 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center min-h-[300px]">
+        <div className="col-span-1 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center min-h-[300px] relative">
+          <button
+            onClick={() => setIsEditingSettings(true)}
+            className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+            title="Sesuaikan Target"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
           <div className="text-center mb-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Target Peserta Sampel (Tahun {year})</h3>
-            <p className="text-4xl font-display font-bold text-slate-800">{targetPeserta}</p>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Target Peserta (Tahun {year})</h3>
+            <p className="text-4xl font-display font-bold text-slate-800">{targetPeserta.toLocaleString()}</p>
           </div>
           
           <div className="relative w-48 h-48 mt-2">
@@ -619,8 +656,8 @@ export default function MenuPeserta({ participants }: MenuPesertaProps) {
       </div>
 
       {/* QUICK STATUS UPDATE MODAL */}
-      {editingParticipant && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+      {editingParticipant && createPortal(
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-start justify-center pt-8 p-4 z-50 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 max-w-md w-full flex flex-col p-6 space-y-4">
             <div className="flex justify-between items-start border-b border-slate-100 pb-3">
               <div>
@@ -712,11 +749,11 @@ export default function MenuPeserta({ participants }: MenuPesertaProps) {
               </div>
             </form>
           </div>
-        </div>
+        </div>, document.body
       )}
 
-      {showConfirmReset && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] animate-fade-in px-4">
+      {showConfirmReset && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-8 z-[1000] animate-fade-in px-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
             <div className="flex items-start gap-4">
               <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl shrink-0">
@@ -748,7 +785,82 @@ export default function MenuPeserta({ participants }: MenuPesertaProps) {
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
+      )}
+
+      {isEditingSettings && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-8 z-[1500] animate-fade-in px-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full border border-slate-100 shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-display font-bold text-slate-800">Sesuaikan Target</h4>
+                  <p className="text-xs font-semibold text-slate-400">Target peserta tahunan BPVP</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsEditingSettings(false);
+                  setInput2025(dbState.settings?.target2025 ?? 5000);
+                  setInput2026(dbState.settings?.target2026 ?? 6000);
+                }}
+                className="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSettings}>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Tahun 2025</label>
+                  <input 
+                    type="number"
+                    min="1"
+                    value={input2025}
+                    onChange={(e) => setInput2025(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Target Tahun 2026</label>
+                  <input 
+                    type="number"
+                    min="1"
+                    value={input2026}
+                    onChange={(e) => setInput2026(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingSettings(false);
+                    setInput2025(dbState.settings?.target2025 ?? 5000);
+                    setInput2026(dbState.settings?.target2026 ?? 6000);
+                  }}
+                  className="px-5 py-2.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
+                  disabled={isSaving}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? "Menyimpan..." : "Simpan Target"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>, document.body
       )}
     </div>
   );
