@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from "react-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Users, Briefcase, BookOpen, Sliders, Settings, Check, X } from 'lucide-react';
@@ -35,62 +35,69 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
   };
 
   // Filter participants to active years (2025, 2026)
-  const activeParticipants = dbState.participants.filter(p => {
-    if (!p.tanggalPelatihan) return false;
-    return p.tanggalPelatihan.endsWith("25") || 
-           p.tanggalPelatihan.endsWith("26") || 
-           p.tanggalPelatihan.includes("2025") ||
-           p.tanggalPelatihan.includes("2026");
-  });
+  const activeParticipants = useMemo(() => {
+    return dbState.participants.filter(p => {
+      if (!p.tanggalPelatihan) return false;
+      return p.tanggalPelatihan.endsWith("25") || 
+             p.tanggalPelatihan.endsWith("26") || 
+             p.tanggalPelatihan.includes("2025") ||
+             p.tanggalPelatihan.includes("2026");
+    });
+  }, [dbState.participants]);
 
   const totalPesertaAllTime = activeParticipants.length;
-  const totalAlumniBekerjaAllTime = activeParticipants.filter(
-    p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"
-  ).length;
+  const totalAlumniBekerjaAllTime = useMemo(() => {
+    return activeParticipants.filter(
+      p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"
+    ).length;
+  }, [activeParticipants]);
   const totalPrograms = dbState.programs.length || 45;
 
-  const trendData = ["2025", "2026"].map(y => {
-    const suffix = y.slice(2);
-    const yearlyPeserta = dbState.participants.filter(p => {
-      if (!p.tanggalPelatihan) return false;
-      return p.tanggalPelatihan.endsWith(suffix) || p.tanggalPelatihan.includes(y);
+  const trendData = useMemo(() => {
+    return ["2025", "2026"].map(y => {
+      const suffix = y.slice(2);
+      const yearlyPeserta = dbState.participants.filter(p => {
+        if (!p.tanggalPelatihan) return false;
+        return p.tanggalPelatihan.endsWith(suffix) || p.tanggalPelatihan.includes(y);
+      });
+      const yearlyBekerja = yearlyPeserta.filter(
+        p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"
+      );
+      return {
+        name: y,
+        peserta: yearlyPeserta.length,
+        alumniBekerja: yearlyBekerja.length
+      };
     });
-    const yearlyBekerja = yearlyPeserta.filter(
-      p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"
-    );
-    return {
-      name: y,
-      peserta: yearlyPeserta.length,
-      alumniBekerja: yearlyBekerja.length
-    };
-  });
+  }, [dbState.participants]);
 
   // Target values defined by settings or defaults
   const target2025 = dbState.settings?.target2025 ?? 5000;
   const target2026 = dbState.settings?.target2026 ?? 6000;
 
-  const targetMap: Record<string, number> = {
-    "2025": target2025,
-    "2026": target2026
-  };
-
-  const targetsData = ["2025", "2026"].map((y, idx) => {
-    const suffix = y.slice(2);
-    const yearlyPeserta = dbState.participants.filter(p => {
-      if (!p.tanggalPelatihan) return false;
-      return p.tanggalPelatihan.endsWith(suffix) || p.tanggalPelatihan.includes(y);
-    });
-    
-    const target = targetMap[y];
-    const colors = ["#A8E6CF", "#FACC15", "#38BDF8"];
-
-    return {
-      year: y,
-      value: yearlyPeserta.length,
-      target,
-      color: colors[idx]
+  const targetsData = useMemo(() => {
+    const targetMap: Record<string, number> = {
+      "2025": target2025,
+      "2026": target2026
     };
-  });
+    return ["2025", "2026"].map((y, idx) => {
+      const suffix = y.slice(2);
+      const yearlyPeserta = dbState.participants.filter(p => {
+        if (!p.tanggalPelatihan) return false;
+        return p.tanggalPelatihan.endsWith(suffix) || p.tanggalPelatihan.includes(y);
+      });
+      
+      const target = targetMap[y];
+      const colors = ["#A8E6CF", "#FACC15", "#38BDF8"];
+
+      return {
+        year: y,
+        value: yearlyPeserta.length,
+        target,
+        color: colors[idx]
+      };
+    });
+  }, [dbState.participants, target2025, target2026]);
 
   return (
     <div className="animate-fade-in space-y-6 pb-10">

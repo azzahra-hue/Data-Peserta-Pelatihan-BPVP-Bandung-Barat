@@ -81,66 +81,7 @@ export default function App() {
         unsubParticipants = subscribeToParticipants(
           (list) => {
             if (active) {
-              // Self-healing: Find any participants with inconsistent disabilitas fields and fix them in background
-              const needsHealing = list.filter(p => {
-                if (p.penyandangDisabilitas === "Ya" || !p.disabilitasTipe || p.disabilitasTipe.trim() === "-" || p.disabilitasTipe.trim().toLowerCase() === "none") {
-                  const tipeDis = (p.disabilitasTipe || "").trim().toLowerCase();
-                  const isNotDisabled = 
-                    !tipeDis ||
-                    tipeDis === "tidak" || 
-                    tipeDis === "tidak ada" || 
-                    tipeDis === "tidak ada disabilitas" || 
-                    tipeDis === "tidak disabilitas" || 
-                    tipeDis === "normal" || 
-                    tipeDis === "-" || 
-                    tipeDis === "none" || 
-                    tipeDis === "t" || 
-                    tipeDis === "n" || 
-                    tipeDis === "no" || 
-                    tipeDis === "bukan";
-                  
-                  if (isNotDisabled && p.penyandangDisabilitas === "Ya") {
-                    return true;
-                  }
-                  if (isNotDisabled && (!p.disabilitasTipe || p.disabilitasTipe.trim() !== "Tidak")) {
-                     return true; // Needs normalization of the string to "Tidak"
-                  }
-                }
-                return false;
-              });
-
-              if (needsHealing.length > 0) {
-                console.log(`Self-healing: fixing ${needsHealing.length} participants with incorrect disability status...`);
-                needsHealing.forEach(p => {
-                  const healed = { ...p, penyandangDisabilitas: "Tidak" as const, disabilitasTipe: "Tidak" };
-                  saveParticipant(healed).catch(err => console.error("Self healing failed for", p.id, err));
-                });
-              }
-
-              // Apply the same correction inline to the displayed list instantly
-              const correctedList = list.map(p => {
-                const tipeDis = (p.disabilitasTipe || "").trim().toLowerCase();
-                const isNotDisabled = 
-                  !tipeDis ||
-                  tipeDis === "tidak" || 
-                  tipeDis === "tidak ada" || 
-                  tipeDis === "tidak ada disabilitas" || 
-                  tipeDis === "tidak disabilitas" || 
-                  tipeDis === "normal" || 
-                  tipeDis === "-" || 
-                  tipeDis === "none" || 
-                  tipeDis === "t" || 
-                  tipeDis === "n" || 
-                  tipeDis === "no" || 
-                  tipeDis === "bukan";
-                
-                if (isNotDisabled) {
-                  return { ...p, penyandangDisabilitas: "Tidak", disabilitasTipe: "Tidak" };
-                }
-                return p;
-              });
-
-              setDbState(prev => ({ ...prev, participants: correctedList }));
+              setDbState(prev => ({ ...prev, participants: list }));
             }
           },
           (err) => console.error("Subscription error participants:", err)

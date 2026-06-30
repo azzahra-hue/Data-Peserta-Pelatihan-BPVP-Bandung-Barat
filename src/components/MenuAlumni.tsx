@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import YearDropdown from './YearDropdown';
 import FiltersGroup from './FiltersGroup';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -17,81 +17,88 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
   const yearSuffix = year.slice(2);
 
   // Filter participants based on Year and active Dropdowns
-  const filtered = dbState.participants.filter(p => {
-    const matchesYear = p.tanggalPelatihan.endsWith(yearSuffix);
-    const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
-    const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
-    const matchesProgram = !filters.program || p.programPelatihan === filters.program;
-    return matchesYear && matchesJenis && matchesKejuruan && matchesProgram;
-  });
+  const filtered = useMemo(() => {
+    return dbState.participants.filter(p => {
+      const matchesYear = p.tanggalPelatihan && p.tanggalPelatihan.endsWith(yearSuffix);
+      const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
+      const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
+      const matchesProgram = !filters.program || p.programPelatihan === filters.program;
+      return matchesYear && matchesJenis && matchesKejuruan && matchesProgram;
+    });
+  }, [dbState.participants, yearSuffix, filters]);
 
   // Calculate dynamic metrics from real database
-  const totalPesertaFilter = filtered.length;
-  const countLulus = filtered.filter(p => p.statusKelulusan === "Lulus").length;
-  const countTidakLulus = filtered.filter(p => p.statusKelulusan === "Tidak Lulus" || p.statusKelulusan === "Drop Out" || p.statusKelulusan === "Dikeluarkan").length;
-  const countDalamProses = filtered.filter(p => p.statusKelulusan === "Dalam Proses").length;
+  const countLulus = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus").length, [filtered]);
+  const countTidakLulus = useMemo(() => filtered.filter(p => p.statusKelulusan === "Tidak Lulus" || p.statusKelulusan === "Drop Out" || p.statusKelulusan === "Dikeluarkan").length, [filtered]);
+  const countDalamProses = useMemo(() => filtered.filter(p => p.statusKelulusan === "Dalam Proses").length, [filtered]);
   
-  const placedAlumni = filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja");
-  const uniqueCompanies = Array.from(new Set(placedAlumni.map(p => p.tempatBekerja).filter(Boolean)));
+  const placedAlumni = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"), [filtered]);
+  const uniqueCompanies = useMemo(() => Array.from(new Set(placedAlumni.map(p => p.tempatBekerja).filter(Boolean))), [placedAlumni]);
   
-  const summary = {
+  const summary = useMemo(() => ({
     lulus: countLulus,
     industri: uniqueCompanies.length,
     pelatihan: dbState.programs.length || 45
-  };
+  }), [countLulus, uniqueCompanies, dbState.programs]);
 
-  const countBekerja = filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Bekerja").length;
-  const countWirausaha = filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Wirausaha").length;
-  const countBelumBekerja = filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Belum Bekerja").length;
+  const countBekerja = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Bekerja").length, [filtered]);
+  const countWirausaha = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Wirausaha").length, [filtered]);
+  const countBelumBekerja = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Belum Bekerja").length, [filtered]);
 
-  const statusKerja = {
-    tetap: Math.floor(countBekerja * 0.4),
-    kontrak: Math.ceil(countBekerja * 0.6),
-    owner: countWirausaha,
-    belumBekerja: countBelumBekerja
-  };
+  const statusKerja = useMemo(() => {
+    return {
+      tetap: Math.floor(countBekerja * 0.4),
+      kontrak: Math.ceil(countBekerja * 0.6),
+      owner: countWirausaha,
+      belumBekerja: countBelumBekerja
+    };
+  }, [countBekerja, countWirausaha, countBelumBekerja]);
 
   const totalBekerja = statusKerja.tetap + statusKerja.owner + statusKerja.kontrak;
   const totalAlumni = countLulus || 1; // avoid division by zero, explicitly use countLulus (Alumni)
 
 
   // Group by lokasi dynamically
-  const locationCounts: Record<string, number> = {};
-  placedAlumni.forEach(p => {
-    if (p.lokasi) {
-      locationCounts[p.lokasi] = (locationCounts[p.lokasi] || 0) + 1;
-    }
-  });
+  const chartDaerah = useMemo(() => {
+    const locationCounts: Record<string, number> = {};
+    placedAlumni.forEach(p => {
+      if (p.lokasi) {
+        locationCounts[p.lokasi] = (locationCounts[p.lokasi] || 0) + 1;
+      }
+    });
 
-  const computedChartDaerah = Object.entries(locationCounts).map(([daerah, total]) => ({
-    daerah,
-    total
-  })).sort((a, b) => b.total - a.total);
+    const computedChartDaerah = Object.entries(locationCounts).map(([daerah, total]) => ({
+      daerah,
+      total
+    })).sort((a, b) => b.total - a.total);
 
-  const chartDaerah = computedChartDaerah.length > 0 ? computedChartDaerah : [
-    { daerah: "Bandung Barat", total: 0 },
-    { daerah: "Cimahi", total: 0 },
-    { daerah: "Subang", total: 0 },
-    { daerah: "Purwakarta", total: 0 },
-  ];
+    return computedChartDaerah.length > 0 ? computedChartDaerah : [
+      { daerah: "Bandung Barat", total: 0 },
+      { daerah: "Cimahi", total: 0 },
+      { daerah: "Subang", total: 0 },
+      { daerah: "Purwakarta", total: 0 },
+    ];
+  }, [placedAlumni]);
 
   // Group by perusahaan dynamically
-  const companyCounts: Record<string, number> = {};
-  placedAlumni.forEach(p => {
-    if (p.tempatBekerja) {
-      companyCounts[p.tempatBekerja] = (companyCounts[p.tempatBekerja] || 0) + 1;
-    }
-  });
+  const tablePerusahaan = useMemo(() => {
+    const companyCounts: Record<string, number> = {};
+    placedAlumni.forEach(p => {
+      if (p.tempatBekerja) {
+        companyCounts[p.tempatBekerja] = (companyCounts[p.tempatBekerja] || 0) + 1;
+      }
+    });
 
-  const computedTablePerusahaan = Object.entries(companyCounts).map(([nama, total]) => ({
-    nama,
-    total
-  })).sort((a, b) => b.total - a.total);
+    const computedTablePerusahaan = Object.entries(companyCounts).map(([nama, total]) => ({
+      nama,
+      total
+    })).sort((a, b) => b.total - a.total);
 
-  const tablePerusahaan = computedTablePerusahaan.length > 0 ? computedTablePerusahaan : [
-    { nama: "Wirausaha / UMKM Mandiri", total: countWirausaha },
-    { nama: "Belum Ada Data Penempatan", total: 0 }
-  ];
+    return computedTablePerusahaan.length > 0 ? computedTablePerusahaan : [
+      { nama: "Wirausaha / UMKM Mandiri", total: countWirausaha },
+      { nama: "Belum Ada Data Penempatan", total: 0 }
+    ];
+  }, [placedAlumni, countWirausaha]);
 
   return (
     <div className="animate-fade-in space-y-6 pb-10">
@@ -114,7 +121,7 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
           <div className="mt-4 pt-4 border-t border-slate-100 flex gap-4 text-xs font-medium">
             <div className="flex items-center gap-1.5 text-slate-500">
               <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-              {totalPesertaFilter} Total
+              {filtered.length} Total
             </div>
             <div className="flex items-center gap-1.5 text-rose-500">
               <span className="w-2 h-2 rounded-full bg-rose-400"></span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import YearDropdown from './YearDropdown';
 import FiltersGroup from './FiltersGroup';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -15,41 +15,47 @@ export default function MenuSebaran({ dbState }: MenuSebaranProps) {
   const yearSuffix = year.slice(2);
 
   // Filter participants based on Year and Dropdown selections
-  const filtered = dbState.participants.filter(p => {
-    const matchesYear = p.tanggalPelatihan.endsWith(yearSuffix);
-    const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
-    const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
-    const matchesProgram = !filters.program || p.programPelatihan === filters.program;
-    return matchesYear && matchesJenis && matchesKejuruan && matchesProgram;
-  });
+  const filtered = useMemo(() => {
+    return dbState.participants.filter(p => {
+      const matchesYear = p.tanggalPelatihan && p.tanggalPelatihan.endsWith(yearSuffix);
+      const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
+      const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
+      const matchesProgram = !filters.program || p.programPelatihan === filters.program;
+      return matchesYear && matchesJenis && matchesKejuruan && matchesProgram;
+    });
+  }, [dbState.participants, yearSuffix, filters]);
 
   // Calculate dynamic bar chart data from real database
   // Group by Kejuruan
-  const kejuruanList = dbState.kejuruanList.length > 0
-    ? dbState.kejuruanList.map(k => k.nama)
-    : ["Agroindustri", "Pariwisata", "Teknologi Informasi", "Bisnis Manajemen", "Otomotif"];
+  const chartData = useMemo(() => {
+    const kejuruanList = dbState.kejuruanList.length > 0
+      ? dbState.kejuruanList.map(k => k.nama)
+      : ["Agroindustri", "Pariwisata", "Teknologi Informasi", "Bisnis Manajemen", "Otomotif"];
 
-  const chartData = kejuruanList.map(kName => {
-    const count = filtered.filter(p => p.kejuruan === kName).length;
-    return { kejuruan: kName, total: count };
-  });
+    return kejuruanList.map(kName => {
+      const count = filtered.filter(p => p.kejuruan === kName).length;
+      return { kejuruan: kName, total: count };
+    });
+  }, [dbState.kejuruanList, filtered]);
 
   // Calculate dynamic table data from real database
   // Group by Program Pelatihan
-  const programList = dbState.programs.length > 0
-    ? dbState.programs.map(pr => pr.nama)
-    : Array.from(new Set(dbState.participants.map(p => p.programPelatihan).filter(Boolean)));
+  const tableData = useMemo(() => {
+    const programList = dbState.programs.length > 0
+      ? dbState.programs.map(pr => pr.nama)
+      : Array.from(new Set(dbState.participants.map(p => p.programPelatihan).filter(Boolean)));
 
-  const computedTableData = programList.map(pName => {
-    const count = filtered.filter(p => p.programPelatihan === pName).length;
-    return { program: pName, total: count };
-  })
-  .filter(item => item.total > 0)
-  .sort((a, b) => b.total - a.total);
+    const computedTableData = programList.map(pName => {
+      const count = filtered.filter(p => p.programPelatihan === pName).length;
+      return { program: pName, total: count };
+    })
+    .filter(item => item.total > 0)
+    .sort((a, b) => b.total - a.total);
 
-  const tableData = computedTableData.length > 0 ? computedTableData : [
-    { program: "Belum Ada Peserta untuk Filter Ini", total: 0 }
-  ];
+    return computedTableData.length > 0 ? computedTableData : [
+      { program: "Belum Ada Peserta untuk Filter Ini", total: 0 }
+    ];
+  }, [dbState.programs, dbState.participants, filtered]);
 
   return (
     <div className="animate-fade-in space-y-6 pb-10">
