@@ -239,6 +239,10 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
   const [filterStatusKebekerjaan, setFilterStatusKebekerjaan] = useState("Semua");
   const [filterKejuruan, setFilterKejuruan] = useState("Semua");
   
+  // Pagination State for Participants Table
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  
   // Modal / Form state for Participant
   const [showPartForm, setShowPartForm] = useState(false);
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
@@ -303,6 +307,13 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
     return matchesSearch && matchesJenis && matchesKelulusan && matchesKebekerjaan && matchesKejuruan;
   });
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterJenisPelatihan, filterStatusKelulusan, filterStatusKebekerjaan, filterKejuruan]);
+
+  const totalPages = Math.ceil(filteredParticipants.length / pageSize);
+  const paginatedParticipants = filteredParticipants.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Check permissions based on roles
   const canModify = currentUserRole === "Sekretaris" || currentUserRole === "Sub Koordinator" || currentUserRole === "Kepala Unit Kerja";
@@ -707,14 +718,14 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {filteredParticipants.length === 0 ? (
+                  {paginatedParticipants.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="text-center py-12 text-slate-400">
                         Tidak ada data peserta pelatihan yang sesuai dengan kriteria filter.
                       </td>
                     </tr>
                   ) : (
-                    filteredParticipants.map((p) => (
+                    paginatedParticipants.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-semibold text-slate-900">{p.nama}</td>
                         <td className="p-3 whitespace-nowrap">{p.jenisPelatihan}</td>
@@ -785,6 +796,35 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination UI */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100 bg-slate-50/50">
+                <span className="text-xs text-slate-500 font-medium">
+                  Menampilkan <span className="font-bold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-slate-700">{Math.min(currentPage * pageSize, filteredParticipants.length)}</span> dari <span className="font-bold text-slate-700">{filteredParticipants.length}</span> data
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Sebelumnya
+                  </button>
+                  <div className="flex items-center gap-1 px-2">
+                    <span className="text-xs font-bold text-slate-700">{currentPage}</span>
+                    <span className="text-xs font-medium text-slate-400">/ {totalPages}</span>
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

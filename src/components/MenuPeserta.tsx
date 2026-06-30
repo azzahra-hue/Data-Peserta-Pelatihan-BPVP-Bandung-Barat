@@ -295,6 +295,10 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   // Settings state
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -404,6 +408,14 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
 
     return matchesYear && matchesJenis && matchesKejuruan && matchesProgram && matchesSearch && matchesStatus;
   });
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [year, filters, searchQuery, statusFilter]);
+
+  const totalPages = Math.ceil(filteredParticipants.length / pageSize);
+  const paginatedParticipants = filteredParticipants.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Calculate stats dynamically from actual live filtered participants
   const totalLive = filteredParticipants.length;
@@ -570,14 +582,14 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {filteredParticipants.length === 0 ? (
+              {paginatedParticipants.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-400 font-medium">
                     Tidak ada data peserta yang cocok dengan kriteria pencarian dan filter aktif.
                   </td>
                 </tr>
               ) : (
-                filteredParticipants.map(p => (
+                paginatedParticipants.map(p => (
                   <tr key={p.id} className="hover:bg-slate-50/30 transition-colors">
                     {/* Name */}
                     <td className="px-6 py-4">
@@ -652,6 +664,35 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
               )}
             </tbody>
           </table>
+          
+          {/* Pagination UI */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100 bg-slate-50/50">
+              <span className="text-xs text-slate-500 font-medium">
+                Menampilkan <span className="font-bold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-slate-700">{Math.min(currentPage * pageSize, filteredParticipants.length)}</span> dari <span className="font-bold text-slate-700">{filteredParticipants.length}</span> peserta
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Sebelumnya
+                </button>
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-xs font-bold text-slate-700">{currentPage}</span>
+                  <span className="text-xs font-medium text-slate-400">/ {totalPages}</span>
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

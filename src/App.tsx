@@ -190,78 +190,7 @@ export default function App() {
     };
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (!isAuthenticated || !dbState.participants.length) return;
-
-    const existingProgramNames = new Set(dbState.programs.map(p => p.nama.toLowerCase().trim()));
-    const existingTypeNames = new Set(dbState.trainingTypes.map(t => t.nama.toLowerCase().trim()));
-    const existingKejuruanNames = new Set(dbState.kejuruanList.map(k => k.nama.toLowerCase().trim()));
-    
-    const missingPrograms: ProgramPelatihan[] = [];
-    const missingTypes: TrainingType[] = [];
-    const missingKejuruan: Kejuruan[] = [];
-
-    dbState.participants.forEach((p, idx) => {
-      if (p.programPelatihan) {
-        const programClean = p.programPelatihan.trim();
-        const kejuruanClean = (p.kejuruan || "").trim();
-        if (programClean && !existingProgramNames.has(programClean.toLowerCase()) && !attemptedHeals.current.has(`prog-${programClean.toLowerCase()}`)) {
-          const id = `pr-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-          missingPrograms.push({
-            id,
-            nama: programClean,
-            kejuruan: kejuruanClean || "Umum"
-          });
-          existingProgramNames.add(programClean.toLowerCase());
-          attemptedHeals.current.add(`prog-${programClean.toLowerCase()}`);
-        }
-      }
-      
-      if (p.jenisPelatihan) {
-        const typeClean = p.jenisPelatihan.trim();
-        if (typeClean && !existingTypeNames.has(typeClean.toLowerCase()) && !attemptedHeals.current.has(`type-${typeClean.toLowerCase()}`)) {
-          const id = `t-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-          missingTypes.push({
-            id,
-            nama: typeClean,
-            deskripsi: "Ditambahkan otomatis"
-          });
-          existingTypeNames.add(typeClean.toLowerCase());
-          attemptedHeals.current.add(`type-${typeClean.toLowerCase()}`);
-        }
-      }
-      
-      if (p.kejuruan) {
-        const kejuruanClean = p.kejuruan.trim();
-        if (kejuruanClean && !existingKejuruanNames.has(kejuruanClean.toLowerCase()) && !attemptedHeals.current.has(`kej-${kejuruanClean.toLowerCase()}`)) {
-          const id = `k-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-          missingKejuruan.push({
-            id,
-            nama: kejuruanClean
-          });
-          existingKejuruanNames.add(kejuruanClean.toLowerCase());
-          attemptedHeals.current.add(`kej-${kejuruanClean.toLowerCase()}`);
-        }
-      }
-    });
-
-    if (missingPrograms.length > 0 || missingTypes.length > 0 || missingKejuruan.length > 0) {
-      console.log(`Self-healing: adding ${missingPrograms.length} programs, ${missingTypes.length} types, ${missingKejuruan.length} kejuruan...`);
-      
-      missingPrograms.forEach(prog => {
-        saveProgram(prog).catch(err => console.error("Self healing failed for program", prog.id, err));
-      });
-      missingTypes.forEach(t => {
-        saveTrainingType(t).catch(err => console.error("Self healing failed for type", t.id, err));
-      });
-      missingKejuruan.forEach(k => {
-        saveKejuruan(k).catch(err => console.error("Self healing failed for kejuruan", k.id, err));
-      });
-      
-      // We will not optimistically update the state here to avoid loops with Firestore 
-      // if security rules reject the creation. They will naturally stream down if successful.
-    }
-  }, [dbState.participants, dbState.programs, dbState.trainingTypes, dbState.kejuruanList, isAuthenticated]);
+  // Self healing removed to prevent loops
 
   const handleUpdateDb = async (updates: Partial<DatabaseState>) => {
     try {
