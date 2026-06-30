@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Login from "./components/Login";
 import DashboardLayout from "./components/DashboardLayout";
 import MenuHome from "./components/MenuHome";
@@ -34,6 +34,7 @@ import {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeMenu, setActiveMenu] = useState("home");
+  const attemptedHeals = useRef<Set<string>>(new Set());
 
   // Centralized Database State
   const [dbState, setDbState] = useState<DatabaseState>({
@@ -204,7 +205,7 @@ export default function App() {
       if (p.programPelatihan) {
         const programClean = p.programPelatihan.trim();
         const kejuruanClean = (p.kejuruan || "").trim();
-        if (programClean && !existingProgramNames.has(programClean.toLowerCase())) {
+        if (programClean && !existingProgramNames.has(programClean.toLowerCase()) && !attemptedHeals.current.has(`prog-${programClean.toLowerCase()}`)) {
           const id = `pr-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
           missingPrograms.push({
             id,
@@ -212,12 +213,13 @@ export default function App() {
             kejuruan: kejuruanClean || "Umum"
           });
           existingProgramNames.add(programClean.toLowerCase());
+          attemptedHeals.current.add(`prog-${programClean.toLowerCase()}`);
         }
       }
       
       if (p.jenisPelatihan) {
         const typeClean = p.jenisPelatihan.trim();
-        if (typeClean && !existingTypeNames.has(typeClean.toLowerCase())) {
+        if (typeClean && !existingTypeNames.has(typeClean.toLowerCase()) && !attemptedHeals.current.has(`type-${typeClean.toLowerCase()}`)) {
           const id = `t-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
           missingTypes.push({
             id,
@@ -225,18 +227,20 @@ export default function App() {
             deskripsi: "Ditambahkan otomatis"
           });
           existingTypeNames.add(typeClean.toLowerCase());
+          attemptedHeals.current.add(`type-${typeClean.toLowerCase()}`);
         }
       }
       
       if (p.kejuruan) {
         const kejuruanClean = p.kejuruan.trim();
-        if (kejuruanClean && !existingKejuruanNames.has(kejuruanClean.toLowerCase())) {
+        if (kejuruanClean && !existingKejuruanNames.has(kejuruanClean.toLowerCase()) && !attemptedHeals.current.has(`kej-${kejuruanClean.toLowerCase()}`)) {
           const id = `k-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
           missingKejuruan.push({
             id,
             nama: kejuruanClean
           });
           existingKejuruanNames.add(kejuruanClean.toLowerCase());
+          attemptedHeals.current.add(`kej-${kejuruanClean.toLowerCase()}`);
         }
       }
     });
@@ -254,13 +258,8 @@ export default function App() {
         saveKejuruan(k).catch(err => console.error("Self healing failed for kejuruan", k.id, err));
       });
       
-      // Update local state optimisticly
-      setDbState(prev => ({
-        ...prev,
-        programs: [...prev.programs, ...missingPrograms],
-        trainingTypes: [...prev.trainingTypes, ...missingTypes],
-        kejuruanList: [...prev.kejuruanList, ...missingKejuruan]
-      }));
+      // We will not optimistically update the state here to avoid loops with Firestore 
+      // if security rules reject the creation. They will naturally stream down if successful.
     }
   }, [dbState.participants, dbState.programs, dbState.trainingTypes, dbState.kejuruanList, isAuthenticated]);
 

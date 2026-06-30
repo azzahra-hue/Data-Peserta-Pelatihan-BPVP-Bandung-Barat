@@ -65,19 +65,21 @@ export default function MenuSebaran({ dbState }: MenuSebaranProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[500px] flex flex-col">
-          <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Distribusi per Kejuruan</h3>
-          <div className="flex-1 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="kejuruan" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }} angle={-45} textAnchor="end" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px -2px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="total" radius={[8, 8, 0, 0]} barSize={48}>
-                  {chartData.map((_, i) => <Cell key={`cell-${i}`} fill={i % 2 === 0 ? "#A8E6CF" : "#D4F0F0"} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <h3 className="text-lg font-display font-bold text-slate-800 mb-8 shrink-0">Distribusi per Kejuruan</h3>
+          <div className="flex-1 w-full min-h-0 relative">
+            <div className="absolute inset-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="kejuruan" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }} angle={-45} textAnchor="end" />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px -2px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="total" radius={[8, 8, 0, 0]} barSize={48}>
+                    {chartData.map((_, i) => <Cell key={`cell-${i}`} fill={i % 2 === 0 ? "#A8E6CF" : "#D4F0F0"} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 

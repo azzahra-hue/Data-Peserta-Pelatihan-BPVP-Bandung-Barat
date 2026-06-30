@@ -213,20 +213,22 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
            </div>
          </div>
 
-         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[450px] flex flex-col">
-           <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Sebaran Daerah Penempatan</h3>
-           <div className="flex-1 w-full">
-             <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={chartDaerah} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                 <YAxis dataKey="daerah" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} />
-                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px -2px rgb(0 0 0 / 0.1)' }} />
-                 <Bar dataKey="total" radius={[0, 12, 12, 0]} barSize={40}>
-                   {chartDaerah.map((_, i) => <Cell key={`cell-${i}`} fill={i === 0 ? "#A8E6CF" : "#D4F0F0"} />)}
-                 </Bar>
-               </BarChart>
-             </ResponsiveContainer>
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[450px] flex flex-col">
+           <h3 className="text-lg font-display font-bold text-slate-800 mb-8 shrink-0">Sebaran Daerah Penempatan</h3>
+           <div className="flex-1 w-full min-h-0 relative">
+             <div className="absolute inset-0">
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={chartDaerah} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                   <YAxis dataKey="daerah" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} />
+                   <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px -2px rgb(0 0 0 / 0.1)' }} />
+                   <Bar dataKey="total" radius={[0, 12, 12, 0]} barSize={40}>
+                     {chartDaerah.map((_, i) => <Cell key={`cell-${i}`} fill={i === 0 ? "#A8E6CF" : "#D4F0F0"} />)}
+                   </Bar>
+                 </BarChart>
+               </ResponsiveContainer>
+             </div>
            </div>
          </div>
       </div>

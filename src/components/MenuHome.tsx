@@ -131,19 +131,23 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[450px] flex flex-col">
-        <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Tren Peserta & Penempatan Kerja (2025 - 2026)</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontWeight: 600, fontSize: 13}} dy={15} />
-            <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} />
-            <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }} />
-            <Legend wrapperStyle={{ paddingTop: '30px' }} iconType="circle" />
-            <Line type="monotone" name="Total Peserta" dataKey="peserta" stroke="#A8E6CF" strokeWidth={5} dot={{r: 8, fill: '#A8E6CF', strokeWidth: 3, stroke: '#fff'}} activeDot={{r: 10}} />
-            <Line type="monotone" name="Alumni Bekerja" dataKey="alumniBekerja" stroke="#FACC15" strokeWidth={5} dot={{r: 8, fill: '#FACC15', strokeWidth: 3, stroke: '#fff'}} />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[450px] flex flex-col relative overflow-hidden">
+        <h3 className="text-lg font-display font-bold text-slate-800 mb-8 shrink-0">Tren Peserta & Penempatan Kerja (2025 - 2026)</h3>
+        <div className="flex-1 min-h-0 relative w-full">
+          <div className="absolute inset-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontWeight: 600, fontSize: 13}} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 13}} />
+                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }} />
+                <Legend wrapperStyle={{ paddingTop: '30px' }} iconType="circle" />
+                <Line type="monotone" name="Total Peserta" dataKey="peserta" stroke="#A8E6CF" strokeWidth={5} dot={{r: 8, fill: '#A8E6CF', strokeWidth: 3, stroke: '#fff'}} activeDot={{r: 10}} />
+                <Line type="monotone" name="Alumni Bekerja" dataKey="alumniBekerja" stroke="#FACC15" strokeWidth={5} dot={{r: 8, fill: '#FACC15', strokeWidth: 3, stroke: '#fff'}} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-between items-center mt-8 mb-4 px-2">
