@@ -89,7 +89,7 @@ export default function SmartCSVImporter({
           { key: "angkatan", label: "Angkatan", required: false, candidates: ["angkatan", "batch", "angkatan_pelatihan"], description: "Contoh: Angkatan I, II, III" },
           { key: "durasi", label: "Durasi (JP)", required: false, candidates: ["durasi (jp)", "durasi", "jp", "hours", "duration"], description: "Jumlah Jam Pelajaran" },
           { key: "biayaPelatihan", label: "Biaya Pelatihan", required: false, candidates: ["biaya pelatihan", "biaya", "cost", "price", "biaya_pelatihan"], description: "Contoh: APBN, Mandiri, dll" },
-          { key: "tanggalMulaiPelatihan", label: "Tanggal Mulai Pelatihan", required: false, candidates: ["tanggal mulai pelatihan", "mulai pelatihan", "tanggal mulai", "start date", "mulai"], description: "Format: DD/MM/YYYY atau YYYY-MM-DD" },
+          { key: "tanggalMulaiPelatihan", label: "Tanggal Mulai Pelatihan", required: true, candidates: ["tanggal mulai pelatihan", "mulai pelatihan", "tanggal mulai", "start date", "mulai"], description: "Format: DD/MM/YYYY atau YYYY-MM-DD" },
           { key: "tanggalSelesaiPelatihan", label: "Tanggal Selesai Pelatihan", required: false, candidates: ["tanggal selesai pelatihan", "selesai pelatihan", "tanggal selesai", "end date", "selesai"], description: "Format: DD/MM/YYYY atau YYYY-MM-DD" },
           { key: "absensi", label: "Absensi", required: false, candidates: ["absensi", "kehadiran", "attendance"], description: "Persentase/Jumlah kehadiran" },
           { key: "statusSelesaiPelatihan", label: "Status Selesai Pelatihan", required: false, candidates: ["status selesai pelatihan", "status selesai", "selesai"], description: "Contoh: Selesai, Mengundurkan Diri" },

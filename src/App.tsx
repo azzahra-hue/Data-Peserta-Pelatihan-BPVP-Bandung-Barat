@@ -141,23 +141,25 @@ export default function App() {
 
   const handleUpdateDb = async (updates: Partial<DatabaseState>) => {
     try {
+      const queue: (() => Promise<any>)[] = [];
+
       if (updates.participants) {
-        const currentIds = dbState.participants.map(p => p.id);
         const nextParticipants = updates.participants;
+        const currentPartMap = new Map(dbState.participants.map(p => [p.id, p]));
+        const nextIds = new Set(nextParticipants.map(p => p.id));
         
         // Write added/updated items
         for (const p of nextParticipants) {
-          const existing = dbState.participants.find(x => x.id === p.id);
+          const existing = currentPartMap.get(p.id);
           if (!existing || JSON.stringify(existing) !== JSON.stringify(p)) {
-            await saveParticipant(p);
+            queue.push(() => saveParticipant(p));
           }
         }
         
         // Delete removed items
-        const nextIds = nextParticipants.map(p => p.id);
-        for (const id of currentIds) {
-          if (!nextIds.includes(id)) {
-            await deleteParticipant(id);
+        for (const id of currentPartMap.keys()) {
+          if (!nextIds.has(id)) {
+            queue.push(() => deleteParticipant(id));
           }
         }
       }
@@ -169,14 +171,14 @@ export default function App() {
         for (const t of nextTypes) {
           const existing = dbState.trainingTypes.find(x => x.id === t.id);
           if (!existing || JSON.stringify(existing) !== JSON.stringify(t)) {
-            await saveTrainingType(t);
+            queue.push(() => saveTrainingType(t));
           }
         }
         
         const nextIds = nextTypes.map(t => t.id);
         for (const id of currentIds) {
           if (!nextIds.includes(id)) {
-            await deleteTrainingType(id);
+            queue.push(() => deleteTrainingType(id));
           }
         }
       }
@@ -188,14 +190,14 @@ export default function App() {
         for (const k of nextKejuruan) {
           const existing = dbState.kejuruanList.find(x => x.id === k.id);
           if (!existing || JSON.stringify(existing) !== JSON.stringify(k)) {
-            await saveKejuruan(k);
+            queue.push(() => saveKejuruan(k));
           }
         }
         
         const nextIds = nextKejuruan.map(k => k.id);
         for (const id of currentIds) {
           if (!nextIds.includes(id)) {
-            await deleteKejuruan(id);
+            queue.push(() => deleteKejuruan(id));
           }
         }
       }
@@ -207,15 +209,24 @@ export default function App() {
         for (const p of nextPrograms) {
           const existing = dbState.programs.find(x => x.id === p.id);
           if (!existing || JSON.stringify(existing) !== JSON.stringify(p)) {
-            await saveProgram(p);
+            queue.push(() => saveProgram(p));
           }
         }
         
         const nextIds = nextPrograms.map(p => p.id);
         for (const id of currentIds) {
           if (!nextIds.includes(id)) {
-            await deleteProgram(id);
+            queue.push(() => deleteProgram(id));
           }
+        }
+      }
+      
+      if (queue.length > 0) {
+        // Execute in chunks of 50 to avoid hitting rate limits or memory issues
+        const CHUNK_SIZE = 50;
+        for (let i = 0; i < queue.length; i += CHUNK_SIZE) {
+          const chunk = queue.slice(i, i + CHUNK_SIZE);
+          await Promise.all(chunk.map(fn => fn()));
         }
       }
     } catch (err) {

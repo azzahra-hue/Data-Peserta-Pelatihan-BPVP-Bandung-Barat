@@ -61,27 +61,36 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
       if (missingLocations.length > 0) {
         const uniqueCompanies = Array.from(new Set(missingLocations.map(p => p.tempatBekerja.trim())));
+        
         try {
-          const res = await fetch("/api/ai/lookup-locations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ companies: uniqueCompanies })
-          });
-          const result = await res.json();
-          if (result && result.locations) {
-            enrichedParticipants.forEach(p => {
-              if (
-                (p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha") && 
-                p.tempatBekerja && p.tempatBekerja.trim() !== "" &&
-                (!p.lokasi || p.lokasi.trim() === "")
-              ) {
-                const companyKey = p.tempatBekerja.trim();
-                if (result.locations[companyKey]) {
-                  p.lokasi = result.locations[companyKey];
-                }
-              }
+          const CHUNK_SIZE = 50;
+          const allLocations: Record<string, string> = {};
+          
+          for (let i = 0; i < uniqueCompanies.length; i += CHUNK_SIZE) {
+            const chunk = uniqueCompanies.slice(i, i + CHUNK_SIZE);
+            const res = await fetch("/api/ai/lookup-locations", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ companies: chunk })
             });
+            const result = await res.json();
+            if (result && result.locations) {
+              Object.assign(allLocations, result.locations);
+            }
           }
+          
+          enrichedParticipants.forEach(p => {
+            if (
+              (p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha") && 
+              p.tempatBekerja && p.tempatBekerja.trim() !== "" &&
+              (!p.lokasi || p.lokasi.trim() === "")
+            ) {
+              const companyKey = p.tempatBekerja.trim();
+              if (allLocations[companyKey]) {
+                p.lokasi = allLocations[companyKey];
+              }
+            }
+          });
         } catch (error) {
           console.error("AI location enrichment failed:", error);
         }
@@ -428,7 +437,37 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       updatedList = [data, ...dbState.participants];
     }
 
-    onUpdateDb({ participants: updatedList });
+    // Auto extract master data from manual entry
+    const newTypes: TrainingType[] = [];
+    const newKejuruan: Kejuruan[] = [];
+    const newPrograms: ProgramPelatihan[] = [];
+    
+    if (data.jenisPelatihan) {
+      const typeClean = data.jenisPelatihan.trim();
+      if (!dbState.trainingTypes.find(t => t.nama.toLowerCase() === typeClean.toLowerCase())) {
+        newTypes.push({ id: `t-${Date.now()}-m`, nama: typeClean, deskripsi: "Ditambahkan otomatis" });
+      }
+    }
+    if (data.kejuruan) {
+      const kejuruanClean = data.kejuruan.trim();
+      if (!dbState.kejuruanList.find(k => k.nama.toLowerCase() === kejuruanClean.toLowerCase())) {
+        newKejuruan.push({ id: `k-${Date.now()}-m`, nama: kejuruanClean });
+      }
+    }
+    if (data.programPelatihan) {
+      const programClean = data.programPelatihan.trim();
+      if (!dbState.programs.find(p => p.nama.toLowerCase() === programClean.toLowerCase())) {
+        newPrograms.push({ id: `pr-${Date.now()}-m`, nama: programClean, kejuruan: data.kejuruan || "Umum" });
+      }
+    }
+
+    onUpdateDb({
+      participants: updatedList,
+      ...(newTypes.length > 0 ? { trainingTypes: [...dbState.trainingTypes, ...newTypes] } : {}),
+      ...(newKejuruan.length > 0 ? { kejuruanList: [...dbState.kejuruanList, ...newKejuruan] } : {}),
+      ...(newPrograms.length > 0 ? { programs: [...dbState.programs, ...newPrograms] } : {})
+    });
+
     resetPartForm();
   };
 
@@ -1572,9 +1611,10 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
                   {/* Tanggal Mulai Pelatihan */}
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Tanggal Mulai Pelatihan</label>
+                    <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Tanggal Mulai Pelatihan *</label>
                     <input
                       type="text"
+                      required
                       value={pTanggalMulaiPelatihan}
                       onChange={(e) => setPTanggalMulaiPelatihan(e.target.value)}
                       placeholder="Contoh: 2024-01-15"
