@@ -38,7 +38,74 @@ const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "bekasi": { lat: -6.2383, lng: 106.9756 },
   "karawang": { lat: -6.3227, lng: 107.3376 },
   "lampung": { lat: -5.4500, lng: 105.2667 },
-  "tangerang": { lat: -6.1783, lng: 106.6319 }
+  "tangerang": { lat: -6.1783, lng: 106.6319 },
+  "aceh": { lat: 4.6951, lng: 96.7494 },
+  "banda aceh": { lat: 5.5483, lng: 95.3238 },
+  "sumatera utara": { lat: 2.1154, lng: 99.5451 },
+  "medan": { lat: 3.5952, lng: 98.6722 },
+  "sumatera barat": { lat: -0.7399, lng: 100.8 },
+  "padang": { lat: -0.9471, lng: 100.4172 },
+  "riau": { lat: 0.2933, lng: 101.7068 },
+  "pekanbaru": { lat: 0.5333, lng: 101.45 },
+  "jambi": { lat: -1.6101, lng: 103.6131 },
+  "sumatera selatan": { lat: -3.3194, lng: 104.9147 },
+  "palembang": { lat: -2.9909, lng: 104.7566 },
+  "bengkulu": { lat: -3.7928, lng: 102.2601 },
+  "bangka belitung": { lat: -2.7411, lng: 106.4406 },
+  "pangkal pinang": { lat: -2.129, lng: 106.1096 },
+  "kepulauan riau": { lat: 3.9456, lng: 108.1429 },
+  "batam": { lat: 1.0456, lng: 104.0305 },
+  "tanjung pinang": { lat: 0.9167, lng: 104.45 },
+  "banten": { lat: -6.4058, lng: 106.064 },
+  "serang": { lat: -6.12, lng: 106.1503 },
+  "jawa tengah": { lat: -7.1501, lng: 110.136 },
+  "semarang": { lat: -6.9932, lng: 110.4203 },
+  "surakarta": { lat: -7.5667, lng: 110.8167 },
+  "solo": { lat: -7.5667, lng: 110.8167 },
+  "yogyakarta": { lat: -7.7956, lng: 110.3695 },
+  "jogja": { lat: -7.7956, lng: 110.3695 },
+  "jawa timur": { lat: -7.5361, lng: 112.2384 },
+  "surabaya": { lat: -7.2504, lng: 112.7688 },
+  "malang": { lat: -7.9839, lng: 112.6214 },
+  "bali": { lat: -8.4095, lng: 115.1889 },
+  "denpasar": { lat: -8.65, lng: 115.2167 },
+  "nusa tenggara barat": { lat: -8.65, lng: 117.3616 },
+  "ntb": { lat: -8.65, lng: 117.3616 },
+  "mataram": { lat: -8.5833, lng: 116.1167 },
+  "lombok": { lat: -8.5833, lng: 116.1167 },
+  "nusa tenggara timur": { lat: -8.65, lng: 121.0807 },
+  "ntt": { lat: -8.65, lng: 121.0807 },
+  "kupang": { lat: -10.1583, lng: 123.5833 },
+  "kalimantan barat": { lat: -0.2787, lng: 111.4753 },
+  "pontianak": { lat: -0.0227, lng: 109.3323 },
+  "kalimantan tengah": { lat: -1.6815, lng: 113.3824 },
+  "palangka raya": { lat: -2.2083, lng: 113.9167 },
+  "kalimantan selatan": { lat: -3.0926, lng: 115.2838 },
+  "banjarmasin": { lat: -3.3289, lng: 114.591 },
+  "kalimantan timur": { lat: 0.5387, lng: 116.4194 },
+  "samarinda": { lat: -0.5022, lng: 117.1536 },
+  "balikpapan": { lat: -1.2379, lng: 116.8529 },
+  "kalimantan utara": { lat: 3.0731, lng: 116.0414 },
+  "tarakan": { lat: 3.3, lng: 117.6333 },
+  "sulawesi utara": { lat: 0.6247, lng: 123.975 },
+  "manado": { lat: 1.4931, lng: 124.8413 },
+  "sulawesi tengah": { lat: -1.43, lng: 121.4456 },
+  "palu": { lat: -0.8917, lng: 119.8707 },
+  "sulawesi selatan": { lat: -3.6688, lng: 119.974 },
+  "makassar": { lat: -5.1477, lng: 119.4327 },
+  "sulawesi tenggara": { lat: -4.1449, lng: 122.1746 },
+  "kendari": { lat: -3.9778, lng: 122.5111 },
+  "gorontalo": { lat: 0.6999, lng: 122.4467 },
+  "sulawesi barat": { lat: -2.8441, lng: 119.2321 },
+  "mamuju": { lat: -2.6784, lng: 118.8876 },
+  "maluku": { lat: -3.2385, lng: 130.1453 },
+  "ambon": { lat: -3.6958, lng: 128.1814 },
+  "maluku utara": { lat: 1.571, lng: 127.8088 },
+  "ternate": { lat: 0.8, lng: 127.4 },
+  "papua": { lat: -4.2699, lng: 138.0804 },
+  "jayapura": { lat: -2.5337, lng: 140.7181 },
+  "papua barat": { lat: -1.3361, lng: 133.1747 },
+  "manokwari": { lat: -0.8615, lng: 134.062 },
 };
 
 export default function AlumniMap({ dbState, participants }: AlumniMapProps) {
@@ -71,10 +138,8 @@ export default function AlumniMap({ dbState, participants }: AlumniMapProps) {
         if (matchingKey) {
           position = REGION_COORDINATES[matchingKey];
         } else {
-          // Default fallback to Lembang area with a slight random offset to prevent complete overlapping
-          const randLat = (Math.random() - 0.5) * 0.15;
-          const randLng = (Math.random() - 0.5) * 0.15;
-          position = { lat: -6.7937 + randLat, lng: 107.6251 + randLng };
+          // Skip plotting unknown locations instead of defaulting to Lembang (which causes confusion)
+          return;
         }
       }
 

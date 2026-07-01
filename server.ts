@@ -403,7 +403,7 @@ Berdasarkan ranah Pengelolaan (Management) dan Evaluasi (Evaluation) Teknologi P
 2. Apa rekomendasi kurikulum, pengadaan pelatihan berikutnya, atau kemitraan industri yang tepat untuk membantu tugas saya sebagai **${role}**?
 3. Buat strategi peningkatan penyerapan kerja yang praktis dan terukur.`;
 
-    const modelsToTry = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     let responseText = "";
     let lastError: any = null;
 
@@ -514,7 +514,7 @@ You MUST respond with a JSON object where the keys are the EXACT company names f
 ${JSON.stringify(companies, null, 2)}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: userPrompt,
       config: {
         systemInstruction: systemPrompt,
@@ -534,7 +534,7 @@ ${JSON.stringify(companies, null, 2)}`;
     // Graceful fallback
     const fallbackMap: Record<string, string> = {};
     req.body.companies?.forEach((company: string) => {
-      fallbackMap[company] = "Bandung Barat";
+      fallbackMap[company] = ""; // Do not assume Bandung Barat if unknown
     });
     res.json({ locations: fallbackMap });
   }

@@ -10,7 +10,7 @@ import MenuImport, {
   DEFAULT_KEJURUAN,
   DEFAULT_PROGRAMS
 } from "./components/MenuImport";
-import { DatabaseState, TrainingType, Kejuruan, ProgramPelatihan } from "./types";
+import { DatabaseState, TrainingType, Kejuruan, ProgramPelatihan, Participant } from "./types";
 import { ensureSignedIn } from "./lib/auth";
 import {
   subscribeToParticipants,
@@ -145,8 +145,8 @@ export default function App() {
 
       if (updates.participants) {
         const nextParticipants = updates.participants;
-        const currentPartMap = new Map(dbState.participants.map(p => [p.id, p]));
-        const nextIds = new Set(nextParticipants.map(p => p.id));
+        const currentPartMap = new Map<string, Participant>(dbState.participants.map(p => [p.id, p]));
+        const nextIds = new Set<string>(nextParticipants.map(p => p.id));
         
         // Write added/updated items
         for (const p of nextParticipants) {
