@@ -1593,13 +1593,18 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   {/* Status */}
                   <div>
                     <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Status Penempatan</label>
-                    <input
-                      type="text"
+                    <select
                       value={pStatus}
                       onChange={(e) => setPStatus(e.target.value)}
-                      placeholder="Contoh: PKWT, PKWTT, Magang"
-                      className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
-                    />
+                      disabled={pStatusKebekerjaan === "Belum Bekerja"}
+                      className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:bg-slate-100"
+                    >
+                      <option value="">- Pilih Status Penempatan -</option>
+                      <option value="Pegawai Tetap">Pegawai Tetap</option>
+                      <option value="Kontrak">Kontrak / Freelance</option>
+                      <option value="Magang">Magang / Internship</option>
+                      <option value="Owner">Owner / Wirausaha</option>
+                    </select>
                   </div>
 
                   {/* Jabatan */}

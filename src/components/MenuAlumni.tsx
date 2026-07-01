@@ -46,15 +46,37 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
   const countBelumBekerja = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Belum Bekerja").length, [filtered]);
 
   const statusKerja = useMemo(() => {
+    let tetap = 0;
+    let kontrak = 0;
+    let magang = 0;
+    let owner = countWirausaha;
+    
+    const bekerja = filtered.filter(p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan === "Bekerja");
+    
+    bekerja.forEach(p => {
+      const status = (p.status || "").toLowerCase();
+      if (status.includes("tetap") || status.includes("pkwtt")) {
+        tetap++;
+      } else if (status.includes("magang") || status.includes("intern")) {
+        magang++;
+      } else if (status.includes("owner") || status.includes("wirausaha")) {
+        owner++;
+      } else {
+        // default to kontrak/freelance for anything else
+        kontrak++; 
+      }
+    });
+
     return {
-      tetap: Math.floor(countBekerja * 0.4),
-      kontrak: Math.ceil(countBekerja * 0.6),
-      owner: countWirausaha,
+      tetap,
+      kontrak,
+      magang,
+      owner,
       belumBekerja: countBelumBekerja
     };
-  }, [countBekerja, countWirausaha, countBelumBekerja]);
+  }, [filtered, countWirausaha, countBelumBekerja]);
 
-  const totalBekerja = statusKerja.tetap + statusKerja.owner + statusKerja.kontrak;
+  const totalBekerja = statusKerja.tetap + statusKerja.owner + statusKerja.kontrak + statusKerja.magang;
   const totalAlumni = countLulus || 1; // avoid division by zero, explicitly use countLulus (Alumni)
 
 
@@ -157,18 +179,26 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
                    </div>
                    <div className="flex flex-col gap-1 border-b border-teal-200/60 pb-2">
                      <div className="flex justify-between text-sm text-teal-800 font-medium">
-                       <span>Owner / Wirausaha</span><span className="font-bold">{statusKerja.owner.toLocaleString()} ({Math.round((statusKerja.owner/totalAlumni)*100)}%)</span>
-                     </div>
-                     <div className="w-full bg-teal-100/50 rounded-full h-1.5">
-                       <div className="bg-yellow-500 h-1.5 rounded-full" style={{ width: `${(statusKerja.owner/totalAlumni)*100}%` }}></div>
-                     </div>
-                   </div>
-                   <div className="flex flex-col gap-1 border-b border-teal-200/60 pb-2">
-                     <div className="flex justify-between text-sm text-teal-800 font-medium">
                        <span>Kontrak / Freelance</span><span className="font-bold">{statusKerja.kontrak.toLocaleString()} ({Math.round((statusKerja.kontrak/totalAlumni)*100)}%)</span>
                      </div>
                      <div className="w-full bg-teal-100/50 rounded-full h-1.5">
                        <div className="bg-cyan-500 h-1.5 rounded-full" style={{ width: `${(statusKerja.kontrak/totalAlumni)*100}%` }}></div>
+                     </div>
+                   </div>
+                   <div className="flex flex-col gap-1 border-b border-teal-200/60 pb-2">
+                     <div className="flex justify-between text-sm text-teal-800 font-medium">
+                       <span>Magang</span><span className="font-bold">{statusKerja.magang.toLocaleString()} ({Math.round((statusKerja.magang/totalAlumni)*100)}%)</span>
+                     </div>
+                     <div className="w-full bg-teal-100/50 rounded-full h-1.5">
+                       <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${(statusKerja.magang/totalAlumni)*100}%` }}></div>
+                     </div>
+                   </div>
+                   <div className="flex flex-col gap-1 border-b border-teal-200/60 pb-2">
+                     <div className="flex justify-between text-sm text-teal-800 font-medium">
+                       <span>Owner / Wirausaha</span><span className="font-bold">{statusKerja.owner.toLocaleString()} ({Math.round((statusKerja.owner/totalAlumni)*100)}%)</span>
+                     </div>
+                     <div className="w-full bg-teal-100/50 rounded-full h-1.5">
+                       <div className="bg-yellow-500 h-1.5 rounded-full" style={{ width: `${(statusKerja.owner/totalAlumni)*100}%` }}></div>
                      </div>
                    </div>
                  </div>
