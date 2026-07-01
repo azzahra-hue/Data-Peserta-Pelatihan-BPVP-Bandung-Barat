@@ -387,27 +387,31 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
   };
 
   // Filter participants based on Year, Dropdowns, and Search
-  const filteredParticipants = participants.filter(p => {
-    // Year filter (matches las 2 digits of the year in training date)
+  const filteredParticipants = React.useMemo(() => {
     const yearSuffix = year.slice(2);
-    const matchesYear = p.tanggalPelatihan.endsWith(yearSuffix);
+    const lowerSearchQuery = searchQuery ? searchQuery.toLowerCase() : "";
 
-    // Filter dropdowns
-    const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
-    const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
-    const matchesProgram = !filters.program || p.programPelatihan === filters.program;
+    return participants.filter(p => {
+      // Year filter (matches las 2 digits of the year in training date)
+      const matchesYear = p.tanggalPelatihan && p.tanggalPelatihan.endsWith(yearSuffix);
 
-    // Search bar
-    const matchesSearch = !searchQuery || 
-      p.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.programPelatihan.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.tempatBekerja && p.tempatBekerja.toLowerCase().includes(searchQuery.toLowerCase()));
+      // Filter dropdowns
+      const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
+      const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
+      const matchesProgram = !filters.program || p.programPelatihan === filters.program;
 
-    // Status kebekerjaan filter
-    const matchesStatus = statusFilter === "Semua" || p.statusKebekerjaan === statusFilter;
+      // Search bar
+      const matchesSearch = !lowerSearchQuery || 
+        p.nama.toLowerCase().includes(lowerSearchQuery) ||
+        p.programPelatihan.toLowerCase().includes(lowerSearchQuery) ||
+        (p.tempatBekerja && p.tempatBekerja.toLowerCase().includes(lowerSearchQuery));
 
-    return matchesYear && matchesJenis && matchesKejuruan && matchesProgram && matchesSearch && matchesStatus;
-  });
+      // Status kebekerjaan filter
+      const matchesStatus = statusFilter === "Semua" || p.statusKebekerjaan === statusFilter;
+
+      return matchesYear && matchesJenis && matchesKejuruan && matchesProgram && matchesSearch && matchesStatus;
+    });
+  }, [participants, year, filters, searchQuery, statusFilter]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -415,7 +419,9 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
   }, [year, filters, searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(filteredParticipants.length / pageSize);
-  const paginatedParticipants = filteredParticipants.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginatedParticipants = React.useMemo(() => {
+    return filteredParticipants.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredParticipants, currentPage, pageSize]);
 
   // Calculate stats dynamically from actual live filtered participants
   const totalLive = filteredParticipants.length;

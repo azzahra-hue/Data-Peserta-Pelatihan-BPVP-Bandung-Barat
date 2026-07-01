@@ -295,25 +295,30 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
   const [newProgramKejuruan, setNewProgramKejuruan] = useState("Teknologi Pengolahan Agroindustri");
 
   // Filtering participants list
-  const filteredParticipants = dbState.participants.filter(p => {
-    const matchesSearch = p.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.alamat.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.programPelatihan.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesJenis = filterJenisPelatihan === "Semua" || p.jenisPelatihan === filterJenisPelatihan;
-    const matchesKelulusan = filterStatusKelulusan === "Semua" || p.statusKelulusan === filterStatusKelulusan;
-    const matchesKebekerjaan = filterStatusKebekerjaan === "Semua" || p.statusKebekerjaan === filterStatusKebekerjaan;
-    const matchesKejuruan = filterKejuruan === "Semua" || p.kejuruan === filterKejuruan;
+  const filteredParticipants = React.useMemo(() => {
+    const lowerSearchQuery = searchQuery.toLowerCase();
+    return dbState.participants.filter(p => {
+      const matchesSearch = p.nama.toLowerCase().includes(lowerSearchQuery) || 
+                            p.alamat.toLowerCase().includes(lowerSearchQuery) ||
+                            p.programPelatihan.toLowerCase().includes(lowerSearchQuery);
+      
+      const matchesJenis = filterJenisPelatihan === "Semua" || p.jenisPelatihan === filterJenisPelatihan;
+      const matchesKelulusan = filterStatusKelulusan === "Semua" || p.statusKelulusan === filterStatusKelulusan;
+      const matchesKebekerjaan = filterStatusKebekerjaan === "Semua" || p.statusKebekerjaan === filterStatusKebekerjaan;
+      const matchesKejuruan = filterKejuruan === "Semua" || p.kejuruan === filterKejuruan;
 
-    return matchesSearch && matchesJenis && matchesKelulusan && matchesKebekerjaan && matchesKejuruan;
-  });
+      return matchesSearch && matchesJenis && matchesKelulusan && matchesKebekerjaan && matchesKejuruan;
+    });
+  }, [dbState.participants, searchQuery, filterJenisPelatihan, filterStatusKelulusan, filterStatusKebekerjaan, filterKejuruan]);
 
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterJenisPelatihan, filterStatusKelulusan, filterStatusKebekerjaan, filterKejuruan]);
 
   const totalPages = Math.ceil(filteredParticipants.length / pageSize);
-  const paginatedParticipants = filteredParticipants.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginatedParticipants = React.useMemo(() => {
+    return filteredParticipants.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredParticipants, currentPage, pageSize]);
 
   // Check permissions based on roles
   const canModify = currentUserRole === "Sekretaris" || currentUserRole === "Sub Koordinator" || currentUserRole === "Kepala Unit Kerja";
