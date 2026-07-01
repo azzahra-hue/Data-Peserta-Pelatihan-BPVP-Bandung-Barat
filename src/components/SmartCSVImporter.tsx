@@ -380,7 +380,13 @@ export default function SmartCSVImporter({
 
       targets.forEach(target => {
         const val = item[target.key];
-        if (target.required && (val === undefined || val === null || val === "")) {
+        
+        let isRequired = target.required;
+        if (target.key === "lokasi" && item.statusKebekerjaan === "Belum Bekerja") {
+          isRequired = false;
+        }
+
+        if (isRequired && (val === undefined || val === null || val === "")) {
           rowErrors[target.key] = `${target.label} wajib diisi.`;
         }
 
@@ -447,6 +453,8 @@ export default function SmartCSVImporter({
         if (!newItem.usia) newItem.usia = 25;
         if (!newItem.tanggalLahir) newItem.tanggalLahir = "01/01/2000";
         if (!newItem.alamat) newItem.alamat = "Jl. Raya Lembang, Bandung Barat";
+        if (newItem.statusKebekerjaan !== "Belum Bekerja" && !newItem.lokasi) newItem.lokasi = "Belum Diketahui";
+        if (!newItem.tanggalMulaiPelatihan) newItem.tanggalMulaiPelatihan = "01/01/2026";
         newItem.kategori = Number(newItem.usia) >= 60 ? "Lansia" : "Bukan Lansia";
       } else {
         if (!newItem.nama) newItem.nama = "Master Baru Tanpa Nama";
