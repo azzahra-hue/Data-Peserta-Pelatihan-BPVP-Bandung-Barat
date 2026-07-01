@@ -41,6 +41,8 @@ export default function SmartCSVImporter({
   const [toast, setToast] = useState<string | null>(null);
   const [showConfirmIgnoreErrors, setShowConfirmIgnoreErrors] = useState(false);
   const [pendingCleanImports, setPendingCleanImports] = useState<any[]>([]);
+  const [previewPage, setPreviewPage] = useState(1);
+  const previewPageSize = 50;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,59 +122,52 @@ export default function SmartCSVImporter({
   };
 
   const parseCSV = (text: string): string[][] => {
-    const lines: string[][] = [];
-    let row: string[] = [];
-    let inQuotes = false;
-    let currentValue = "";
-    
-    // Auto-detect separator: comma vs semicolon
+    // Auto-detect separator
     const firstLine = text.split(/\r?\n/)[0] || "";
     const commaCount = (firstLine.match(/,/g) || []).length;
     const semicolonCount = (firstLine.match(/;/g) || []).length;
     const separator = semicolonCount > commaCount ? ";" : ",";
 
+    const lines: string[][] = [];
+    let row: string[] = [];
+    let currentCell = "";
+    let inQuotes = false;
+
+    // Much faster parse loop utilizing slice
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-      const nextChar = text[i + 1];
-
       if (inQuotes) {
-        if (char === '"') {
-          if (nextChar === '"') {
-            currentValue += '"';
-            i++; 
-          } else {
-            inQuotes = false; 
-          }
+        if (char === '"' && text[i + 1] === '"') {
+          currentCell += '"';
+          i++; // skip next quote
+        } else if (char === '"') {
+          inQuotes = false;
         } else {
-          currentValue += char;
+          currentCell += char;
         }
       } else {
         if (char === '"') {
           inQuotes = true;
         } else if (char === separator) {
-          row.push(currentValue.trim());
-          currentValue = "";
-        } else if (char === "\n" || char === "\r") {
-          row.push(currentValue.trim());
-          currentValue = "";
-          if (row.length > 0 && row.some(cell => cell !== "")) {
-            lines.push(row);
-          }
+          row.push(currentCell.trim());
+          currentCell = "";
+        } else if (char === '\n' || char === '\r') {
+          row.push(currentCell.trim());
+          if (row.some(c => c !== "")) lines.push(row);
           row = [];
-          if (char === "\r" && nextChar === "\n") {
-            i++; 
+          currentCell = "";
+          if (char === '\r' && text[i + 1] === '\n') {
+            i++;
           }
         } else {
-          currentValue += char;
+          currentCell += char;
         }
       }
     }
     
-    if (currentValue || row.length > 0) {
-      row.push(currentValue.trim());
-      if (row.some(cell => cell !== "")) {
-        lines.push(row);
-      }
+    if (currentCell !== "" || row.length > 0) {
+      row.push(currentCell.trim());
+      if (row.some(c => c !== "")) lines.push(row);
     }
     
     return lines;
@@ -373,6 +368,7 @@ export default function SmartCSVImporter({
     setParsedData(finalDataList);
     setSelectedRows(initialSelected);
     validateDataRows(finalDataList);
+    setPreviewPage(1);
     setStep("preview");
   };
 
@@ -403,6 +399,14 @@ export default function SmartCSVImporter({
 
         if (target.key === "penyandangDisabilitas" && val !== "" && val !== "Ya" && val !== "Tidak") {
           rowErrors[target.key] = "Disabilitas harus 'Ya' atau 'Tidak'.";
+        }
+        
+        if (target.key === "statusKelulusan" && val !== "" && !["Lulus", "Tidak Lulus", "Dalam Proses"].includes(val)) {
+          rowErrors[target.key] = "Status Kelulusan harus 'Lulus', 'Tidak Lulus', atau 'Dalam Proses'.";
+        }
+        
+        if (target.key === "statusKebekerjaan" && val !== "" && !["Bekerja", "Belum Bekerja", "Wirausaha"].includes(val)) {
+          rowErrors[target.key] = "Status Kebekerjaan harus 'Bekerja', 'Belum Bekerja', atau 'Wirausaha'.";
         }
       });
 
@@ -438,9 +442,11 @@ export default function SmartCSVImporter({
         if (!newItem.jenisPelatihan) newItem.jenisPelatihan = "Pelatihan Berbasis Kompetensi (PBK)";
         if (!newItem.programPelatihan) newItem.programPelatihan = "Budidaya Hidroponik";
         if (!newItem.kejuruan) newItem.kejuruan = "Agroindustri";
-        if (!newItem.statusKelulusan) newItem.statusKelulusan = "Lulus";
+        if (!["Lulus", "Tidak Lulus", "Dalam Proses"].includes(newItem.statusKelulusan)) newItem.statusKelulusan = "Lulus";
+        if (!["Bekerja", "Belum Bekerja", "Wirausaha"].includes(newItem.statusKebekerjaan)) newItem.statusKebekerjaan = "Belum Bekerja";
         if (!newItem.jenisKelamin) newItem.jenisKelamin = "L";
         if (!newItem.usia) newItem.usia = 25;
+        if (!newItem.tanggalLahir) newItem.tanggalLahir = "01/01/2000";
         if (!newItem.alamat) newItem.alamat = "Jl. Raya Lembang, Bandung Barat";
         newItem.kategori = Number(newItem.usia) >= 60 ? "Lansia" : "Bukan Lansia";
       } else {
@@ -762,7 +768,8 @@ export default function SmartCSVImporter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700 font-semibold">
-                    {parsedData.map((row, rowIndex) => {
+                    {parsedData.slice((previewPage - 1) * previewPageSize, previewPage * previewPageSize).map((row, idx) => {
+                      const rowIndex = (previewPage - 1) * previewPageSize + idx;
                       const hasRowError = validationErrors[rowIndex] && Object.keys(validationErrors[rowIndex]).length > 0;
                       const isSelected = selectedRows[rowIndex];
 
@@ -882,6 +889,30 @@ export default function SmartCSVImporter({
                 >
                   Kembali ke Penjajaran Kolom
                 </button>
+                
+                {/* Pagination Controls */}
+                {parsedData.length > previewPageSize && (
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => setPreviewPage(p => Math.max(1, p - 1))}
+                      disabled={previewPage === 1}
+                      className="px-3 py-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-600 rounded text-xs font-bold"
+                    >
+                      &larr; Prev
+                    </button>
+                    <span className="text-xs font-semibold text-slate-500">
+                      Halaman {previewPage} / {Math.ceil(parsedData.length / previewPageSize)}
+                    </span>
+                    <button 
+                      onClick={() => setPreviewPage(p => Math.min(Math.ceil(parsedData.length / previewPageSize), p + 1))}
+                      disabled={previewPage === Math.ceil(parsedData.length / previewPageSize)}
+                      className="px-3 py-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-600 rounded text-xs font-bold"
+                    >
+                      Next &rarr;
+                    </button>
+                  </div>
+                )}
+
                 <button 
                   onClick={finalizeImport}
                   className="px-8 py-3 bg-[#A8E6CF] hover:bg-[#91c9b4] text-teal-950 font-bold text-xs rounded-xl shadow-sm inline-flex items-center gap-1.5 active:scale-95 transition-all"
