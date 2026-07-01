@@ -290,7 +290,8 @@ interface MenuPesertaProps {
 
 export default function MenuPeserta({ dbState }: MenuPesertaProps) {
   const participants = dbState.participants;
-  const [year, setYear] = useState("2025");
+  const [year, setYear] = useState("Semua");
+  const yearSuffix = year !== "Semua" ? year.slice(2) : "";
   const [filters, setFilters] = useState({ jenis: "", kejuruan: "", program: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
@@ -386,14 +387,29 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
     }
   };
 
+  const availableYears = React.useMemo(() => {
+    const years = new Set<string>();
+    participants.forEach(p => {
+      if (p.tanggalPelatihan) {
+        const match = p.tanggalPelatihan.match(/\d{4}$/) || p.tanggalPelatihan.match(/\d{2}$/);
+        if (match) {
+          const y = match[0];
+          years.add(y.length === 2 ? `20${y}` : y);
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [participants]);
+
   // Filter participants based on Year, Dropdowns, and Search
   const filteredParticipants = React.useMemo(() => {
-    const yearSuffix = year.slice(2);
+    const yearSuffix = year !== "Semua" ? year.slice(2) : "";
     const lowerSearchQuery = searchQuery ? searchQuery.toLowerCase() : "";
 
     return participants.filter(p => {
       // Year filter (matches las 2 digits of the year in training date)
-      const matchesYear = p.tanggalPelatihan && p.tanggalPelatihan.endsWith(yearSuffix);
+      const tp = p.tanggalPelatihan || "";
+      const matchesYear = year === "Semua" || tp.startsWith(year) || tp.endsWith(`/${year}`) || tp.endsWith(`/${yearSuffix}`) || tp.endsWith(`-${yearSuffix}`) || tp.includes(year);
 
       // Filter dropdowns
       const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
@@ -402,8 +418,8 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
 
       // Search bar
       const matchesSearch = !lowerSearchQuery || 
-        p.nama.toLowerCase().includes(lowerSearchQuery) ||
-        p.programPelatihan.toLowerCase().includes(lowerSearchQuery) ||
+        (p.nama || "").toLowerCase().includes(lowerSearchQuery) ||
+        (p.programPelatihan || "").toLowerCase().includes(lowerSearchQuery) ||
         (p.tempatBekerja && p.tempatBekerja.toLowerCase().includes(lowerSearchQuery));
 
       // Status kebekerjaan filter
@@ -456,7 +472,7 @@ export default function MenuPeserta({ dbState }: MenuPesertaProps) {
           <p className="text-sm font-medium text-slate-500 mt-1">Pemantauan realisasi peserta, kelulusan, dan status kebekerjaan alumni</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <YearDropdown value={year} onChange={setYear} />
+          <YearDropdown value={year} onChange={setYear} availableYears={availableYears} />
           <button 
             onClick={handleResetDb} 
             className="p-3 bg-slate-50 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-2xl border border-slate-200/50 shadow-xs transition-colors flex items-center justify-center gap-1.5"

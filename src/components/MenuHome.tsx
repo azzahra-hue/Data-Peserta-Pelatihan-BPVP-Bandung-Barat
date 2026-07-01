@@ -37,28 +37,57 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
   // Filter participants to active years (2025, 2026)
   const activeParticipants = useMemo(() => {
     return dbState.participants.filter(p => {
-      if (!p.tanggalPelatihan) return false;
-      return p.tanggalPelatihan.endsWith("25") || 
-             p.tanggalPelatihan.endsWith("26") || 
-             p.tanggalPelatihan.includes("2025") ||
-             p.tanggalPelatihan.includes("2026");
+      const tp = p.tanggalPelatihan || "";
+      return tp.startsWith("2025") || tp.endsWith("/2025") || tp.endsWith("/25") || tp.endsWith("-25") || tp.includes("2025") ||
+             tp.startsWith("2026") || tp.endsWith("/2026") || tp.endsWith("/26") || tp.endsWith("-26") || tp.includes("2026");
     });
   }, [dbState.participants]);
 
-  const totalPesertaAllTime = activeParticipants.length;
+  const totalPesertaAllTime = dbState.participants.length;
   const totalAlumniBekerjaAllTime = useMemo(() => {
-    return activeParticipants.filter(
+    return dbState.participants.filter(
       p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"
     ).length;
-  }, [activeParticipants]);
+  }, [dbState.participants]);
   const totalPrograms = dbState.programs.length || 45;
 
+  const yearsLabel = useMemo(() => {
+    const years = dbState.participants.map(p => {
+       const tp = p.tanggalPelatihan || "";
+       const match = tp.match(/\b(20\d{2})\b/);
+       if (match) return parseInt(match[1]);
+       const shortMatch = tp.match(/[-\/]\s*(\d{2})$/);
+       if (shortMatch) return 2000 + parseInt(shortMatch[1]);
+       return null;
+    }).filter(Boolean) as number[];
+    
+    if (years.length === 0) return "2025 - 2026";
+    const min = Math.min(...years);
+    const max = Math.max(...years);
+    return min === max ? `${min}` : `${min} - ${max}`;
+  }, [dbState.participants]);
+
   const trendData = useMemo(() => {
-    return ["2025", "2026"].map(y => {
+    let yearsList = ["2025", "2026", "2027"];
+    if (yearsLabel !== "2025 - 2026") {
+      const parts = yearsLabel.split(" - ").map(Number);
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        const min = parts[0];
+        const max = parts[1];
+        yearsList = [];
+        for (let i = min; i <= max; i++) {
+          yearsList.push(i.toString());
+        }
+      } else if (parts.length === 1 && !isNaN(parts[0])) {
+        yearsList = [parts[0].toString()];
+      }
+    }
+
+    return yearsList.map(y => {
       const suffix = y.slice(2);
       const yearlyPeserta = dbState.participants.filter(p => {
-        if (!p.tanggalPelatihan) return false;
-        return p.tanggalPelatihan.endsWith(suffix) || p.tanggalPelatihan.includes(y);
+        const tp = p.tanggalPelatihan || "";
+        return tp.startsWith(y) || tp.endsWith(`/${y}`) || tp.endsWith(`/${suffix}`) || tp.endsWith(`-${suffix}`) || tp.includes(y);
       });
       const yearlyBekerja = yearlyPeserta.filter(
         p => p.statusKelulusan === "Lulus" && p.statusKebekerjaan !== "Belum Bekerja"
@@ -69,7 +98,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
         alumniBekerja: yearlyBekerja.length
       };
     });
-  }, [dbState.participants]);
+  }, [dbState.participants, yearsLabel]);
 
   // Target values defined by settings or defaults
   const target2025 = dbState.settings?.target2025 ?? 5000;
@@ -83,8 +112,8 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
     return ["2025", "2026"].map((y, idx) => {
       const suffix = y.slice(2);
       const yearlyPeserta = dbState.participants.filter(p => {
-        if (!p.tanggalPelatihan) return false;
-        return p.tanggalPelatihan.endsWith(suffix) || p.tanggalPelatihan.includes(y);
+        const tp = p.tanggalPelatihan || "";
+        return tp.startsWith(y) || tp.endsWith(`/${y}`) || tp.endsWith(`/${suffix}`) || tp.endsWith(`-${suffix}`) || tp.includes(y);
       });
       
       const target = targetMap[y];
@@ -112,9 +141,9 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
         <div className="bg-[#A8E6CF] p-8 rounded-[2rem] shadow-sm flex flex-col justify-between h-40">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/40 rounded-xl flex items-center justify-center text-teal-900 border border-teal-200/50">
-              <Users className="w-5 h-5" />
+               <Users className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-teal-900">Total Peserta (2025 - 2026)</p>
+            <p className="text-sm font-bold text-teal-900">Total Peserta ({yearsLabel})</p>
           </div>
           <p className="text-5xl font-display font-bold text-teal-950">{totalPesertaAllTime.toLocaleString()}</p>
         </div>
@@ -123,7 +152,7 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
             <div className="w-10 h-10 bg-white/40 rounded-xl flex items-center justify-center text-yellow-900 border border-yellow-200/50">
               <Briefcase className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-yellow-900">Alumni Bekerja (2025 - 2026)</p>
+            <p className="text-sm font-bold text-yellow-900">Alumni Bekerja ({yearsLabel})</p>
           </div>
           <p className="text-5xl font-display font-bold text-yellow-950">{totalAlumniBekerjaAllTime.toLocaleString()}</p>
         </div>
@@ -132,14 +161,14 @@ export default function MenuHome({ dbState }: MenuHomeProps) {
             <div className="w-10 h-10 bg-white/40 rounded-xl flex items-center justify-center text-cyan-900 border border-cyan-200/50">
               <BookOpen className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-cyan-900">Total Program Pelatihan</p>
+            <p className="text-sm font-bold text-cyan-900">Total Program Pelatihan ({yearsLabel})</p>
           </div>
           <p className="text-5xl font-display font-bold text-cyan-950">{totalPrograms}</p>
         </div>
       </div>
 
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-[450px] flex flex-col">
-        <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Tren Peserta & Penempatan Kerja (2025 - 2026)</h3>
+        <h3 className="text-lg font-display font-bold text-slate-800 mb-8">Tren Peserta & Penempatan Kerja ({yearsLabel})</h3>
         <div style={{ flex: 1, minHeight: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>

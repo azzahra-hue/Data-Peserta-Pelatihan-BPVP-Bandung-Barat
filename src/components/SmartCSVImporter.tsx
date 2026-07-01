@@ -318,16 +318,15 @@ export default function SmartCSVImporter({
         
         // Helper function for parsing year
         const parseToTanggalPelatihan = (tanggalMulai: string): string => {
-          if (!tanggalMulai) return "23-Jan-24";
+          if (!tanggalMulai) return "15-May-25";
           const trimmed = tanggalMulai.trim();
           if (trimmed.match(/^\d{2}-[a-zA-Z]{3}-\d{2}$/)) {
             return trimmed;
           }
-          // Extract 2-digit year
           let year = "25";
-          if (trimmed.includes("2025") || trimmed.endsWith("25") || trimmed.startsWith("25")) year = "25";
-          else if (trimmed.includes("2026") || trimmed.endsWith("26") || trimmed.startsWith("26")) year = "26";
-          else if (trimmed.includes("2024") || trimmed.endsWith("24") || trimmed.startsWith("24")) year = "24";
+          if (trimmed.includes("2024") || trimmed.endsWith("-24") || trimmed.endsWith("/24") || trimmed.endsWith(" 24")) year = "24";
+          if (trimmed.includes("2026") || trimmed.endsWith("-26") || trimmed.endsWith("/26") || trimmed.endsWith(" 26")) year = "26";
+          if (trimmed.includes("2027") || trimmed.endsWith("-27") || trimmed.endsWith("/27") || trimmed.endsWith(" 27")) year = "27";
           return `15-May-${year}`;
         };
 

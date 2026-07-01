@@ -11,21 +11,36 @@ interface MenuAlumniProps {
 }
 
 export default function MenuAlumni({ dbState }: MenuAlumniProps) {
-  const [year, setYear] = useState("2025");
+  const [year, setYear] = useState("Semua");
   const [filters, setFilters] = useState({ jenis: "", kejuruan: "", program: "" });
 
-  const yearSuffix = year.slice(2);
+  const yearSuffix = year !== "Semua" ? year.slice(2) : "";
 
   // Filter participants based on Year and active Dropdowns
+  const availableYears = React.useMemo(() => {
+    const years = new Set<string>();
+    dbState.participants.forEach(p => {
+      if (p.tanggalPelatihan) {
+        const match = p.tanggalPelatihan.match(/\d{4}$/) || p.tanggalPelatihan.match(/\d{2}$/);
+        if (match) {
+          const y = match[0];
+          years.add(y.length === 2 ? `20${y}` : y);
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [dbState.participants]);
+
   const filtered = useMemo(() => {
     return dbState.participants.filter(p => {
-      const matchesYear = p.tanggalPelatihan && p.tanggalPelatihan.endsWith(yearSuffix);
+      const tp = p.tanggalPelatihan || "";
+      const matchesYear = year === "Semua" || tp.startsWith(year) || tp.endsWith(`/${year}`) || tp.endsWith(`/${yearSuffix}`) || tp.endsWith(`-${yearSuffix}`) || tp.includes(year);
       const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
       const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
       const matchesProgram = !filters.program || p.programPelatihan === filters.program;
       return matchesYear && matchesJenis && matchesKejuruan && matchesProgram;
     });
-  }, [dbState.participants, yearSuffix, filters]);
+  }, [dbState.participants, year, yearSuffix, filters]);
 
   // Calculate dynamic metrics from real database
   const countLulus = useMemo(() => filtered.filter(p => p.statusKelulusan === "Lulus").length, [filtered]);
@@ -84,8 +99,11 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
   const chartDaerah = useMemo(() => {
     const locationCounts: Record<string, number> = {};
     placedAlumni.forEach(p => {
-      if (p.lokasi) {
-        locationCounts[p.lokasi] = (locationCounts[p.lokasi] || 0) + 1;
+      if (p.lokasi && p.lokasi.trim() !== "") {
+        const raw = p.lokasi.trim();
+        // Capitalize each word for consistent grouping (e.g. "bandung barat" -> "Bandung Barat")
+        const formattedLokasi = raw.toLowerCase().split(' ').filter(Boolean).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        locationCounts[formattedLokasi] = (locationCounts[formattedLokasi] || 0) + 1;
       }
     });
 
@@ -95,10 +113,7 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
     })).sort((a, b) => b.total - a.total);
 
     return computedChartDaerah.length > 0 ? computedChartDaerah : [
-      { daerah: "Bandung Barat", total: 0 },
-      { daerah: "Cimahi", total: 0 },
-      { daerah: "Subang", total: 0 },
-      { daerah: "Purwakarta", total: 0 },
+      { daerah: "Belum Ada Data", total: 0 },
     ];
   }, [placedAlumni]);
 
@@ -129,7 +144,7 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
           <h2 className="text-2xl font-display font-bold text-slate-800">Penempatan Alumni</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Tracer study dan keterserapan industri</p>
         </div>
-        <YearDropdown value={year} onChange={setYear} />
+        <YearDropdown value={year} onChange={setYear} availableYears={availableYears} />
       </div>
 
       <FiltersGroup filters={filters} setFilters={setFilters} />
@@ -216,7 +231,7 @@ export default function MenuAlumni({ dbState }: MenuAlumniProps) {
         </div>
 
         <div className="min-h-[400px] h-full">
-           <AlumniMap dbState={dbState} />
+           <AlumniMap dbState={dbState} participants={filtered} />
         </div>
       </div>
 

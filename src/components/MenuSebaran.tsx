@@ -9,21 +9,36 @@ interface MenuSebaranProps {
 }
 
 export default function MenuSebaran({ dbState }: MenuSebaranProps) {
-  const [year, setYear] = useState("2025");
+  const [year, setYear] = useState("Semua");
   const [filters, setFilters] = useState({ jenis: "", kejuruan: "", program: "" });
 
-  const yearSuffix = year.slice(2);
+  const yearSuffix = year !== "Semua" ? year.slice(2) : "";
 
   // Filter participants based on Year and Dropdown selections
+  const availableYears = React.useMemo(() => {
+    const years = new Set<string>();
+    dbState.participants.forEach(p => {
+      if (p.tanggalPelatihan) {
+        const match = p.tanggalPelatihan.match(/\d{4}$/) || p.tanggalPelatihan.match(/\d{2}$/);
+        if (match) {
+          const y = match[0];
+          years.add(y.length === 2 ? `20${y}` : y);
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [dbState.participants]);
+
   const filtered = useMemo(() => {
     return dbState.participants.filter(p => {
-      const matchesYear = p.tanggalPelatihan && p.tanggalPelatihan.endsWith(yearSuffix);
+      const tp = p.tanggalPelatihan || "";
+      const matchesYear = year === "Semua" || tp.startsWith(year) || tp.endsWith(`/${year}`) || tp.endsWith(`/${yearSuffix}`) || tp.endsWith(`-${yearSuffix}`) || tp.includes(year);
       const matchesJenis = !filters.jenis || p.jenisPelatihan === filters.jenis;
       const matchesKejuruan = !filters.kejuruan || p.kejuruan === filters.kejuruan;
       const matchesProgram = !filters.program || p.programPelatihan === filters.program;
       return matchesYear && matchesJenis && matchesKejuruan && matchesProgram;
     });
-  }, [dbState.participants, yearSuffix, filters]);
+  }, [dbState.participants, year, yearSuffix, filters]);
 
   // Calculate dynamic bar chart data from real database
   // Group by Kejuruan
@@ -64,7 +79,7 @@ export default function MenuSebaran({ dbState }: MenuSebaranProps) {
           <h2 className="text-2xl font-display font-bold text-slate-800">Profil Sebaran Peserta</h2>
           <p className="text-sm font-medium text-slate-500 mt-1">Distribusi peserta berdasarkan kejuruan dan program</p>
         </div>
-        <YearDropdown value={year} onChange={setYear} />
+        <YearDropdown value={year} onChange={setYear} availableYears={availableYears} />
       </div>
 
       <FiltersGroup filters={filters} setFilters={setFilters} />

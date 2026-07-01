@@ -35,6 +35,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeMenu, setActiveMenu] = useState("home");
   const attemptedHeals = useRef<Set<string>>(new Set());
+  const [isLoadingDb, setIsLoadingDb] = useState(true);
 
   // Centralized Database State
   const [dbState, setDbState] = useState<DatabaseState>({
@@ -57,6 +58,7 @@ export default function App() {
 
     const start = async () => {
       try {
+        setIsLoadingDb(true);
         await ensureSignedIn();
         if (!active) return;
 
@@ -82,9 +84,13 @@ export default function App() {
           (list) => {
             if (active) {
               setDbState(prev => ({ ...prev, participants: list }));
+              setIsLoadingDb(false); // Consider it loaded once participants are fetched
             }
           },
-          (err) => console.error("Subscription error participants:", err)
+          (err) => {
+            console.error("Subscription error participants:", err);
+            if (active) setIsLoadingDb(false);
+          }
         );
 
         unsubTrainingTypes = subscribeToTrainingTypes(
@@ -229,6 +235,17 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
+
+  if (isLoadingDb) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center">
+        <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 mb-4">
+          <span className="absolute inset-0 rounded-full border-2 border-teal-500 border-t-transparent animate-spin"></span>
+        </div>
+        <p className="text-sm font-bold text-slate-500 animate-pulse">Menyiapkan Database...</p>
+      </div>
+    );
   }
 
   return (

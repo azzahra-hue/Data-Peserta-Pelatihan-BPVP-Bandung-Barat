@@ -4,11 +4,14 @@ import { ChevronDown, Calendar } from 'lucide-react';
 interface Props {
   value: string;
   onChange: (val: string) => void;
+  availableYears?: string[];
 }
 
-export default function YearDropdown({ value, onChange }: Props) {
+export default function YearDropdown({ value, onChange, availableYears }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const years = ["2025", "2026"];
+  const years = availableYears && availableYears.length > 0 
+    ? ["Semua", ...availableYears] 
+    : ["Semua", "2024", "2025", "2026", "2027"];
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export default function YearDropdown({ value, onChange }: Props) {
         className="flex items-center gap-2 px-5 py-2.5 bg-[#FACC15] hover:bg-[#FDE047] text-yellow-950 border border-[#FACC15] font-bold text-sm rounded-full shadow-sm transition-all active:scale-95"
       >
         <Calendar className="w-4 h-4 text-yellow-700" />
-        Tahun {value}
+        {value === "Semua" ? "Semua Tahun" : `Tahun ${value}`}
         <ChevronDown className={`w-4 h-4 text-yellow-700 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
       
@@ -41,7 +44,7 @@ export default function YearDropdown({ value, onChange }: Props) {
                 onClick={() => { onChange(y); setIsOpen(false); }}
                 className={`px-4 py-2 text-sm rounded-xl cursor-pointer hover:bg-slate-50 transition-colors ${value === y ? "bg-[#FACC15]/50 font-bold text-yellow-900" : "text-slate-600 font-medium"}`}
               >
-                Tahun {y}
+                {y === "Semua" ? "Semua Tahun" : `Tahun ${y}`}
               </li>
             ))}
           </ul>

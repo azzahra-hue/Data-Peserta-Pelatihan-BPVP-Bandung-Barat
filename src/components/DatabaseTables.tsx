@@ -287,20 +287,31 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
   const [pTanggalPelatihan, setPTanggalPelatihan] = useState("");
   const [pLokasi, setPLokasi] = useState("");
 
-  // Sub-master dynamic creators
+  // Sub-master dynamic creators & editors
   const [newTypeName, setNewTypeName] = useState("");
   const [newTypeDesc, setNewTypeDesc] = useState("");
+  const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
+
   const [newKejuruanName, setNewKejuruanName] = useState("");
+  const [editingKejuruanId, setEditingKejuruanId] = useState<string | null>(null);
+
   const [newProgramName, setNewProgramName] = useState("");
   const [newProgramKejuruan, setNewProgramKejuruan] = useState("Teknologi Pengolahan Agroindustri");
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
 
   // Filtering participants list
   const filteredParticipants = React.useMemo(() => {
     const lowerSearchQuery = searchQuery.toLowerCase();
     return dbState.participants.filter(p => {
-      const matchesSearch = p.nama.toLowerCase().includes(lowerSearchQuery) || 
-                            p.alamat.toLowerCase().includes(lowerSearchQuery) ||
-                            p.programPelatihan.toLowerCase().includes(lowerSearchQuery);
+      const matchesSearch = !lowerSearchQuery || 
+                            (p.nama || "").toLowerCase().includes(lowerSearchQuery) || 
+                            (p.alamat || "").toLowerCase().includes(lowerSearchQuery) ||
+                            (p.programPelatihan || "").toLowerCase().includes(lowerSearchQuery) ||
+                            (p.kodeTransaksi || "").toLowerCase().includes(lowerSearchQuery) ||
+                            (p.nik || "").toLowerCase().includes(lowerSearchQuery) ||
+                            (p.noHp || "").toLowerCase().includes(lowerSearchQuery) ||
+                            (p.email || "").toLowerCase().includes(lowerSearchQuery) ||
+                            (p.tempatBekerja || "").toLowerCase().includes(lowerSearchQuery);
       
       const matchesJenis = filterJenisPelatihan === "Semua" || p.jenisPelatihan === filterJenisPelatihan;
       const matchesKelulusan = filterStatusKelulusan === "Semua" || p.statusKelulusan === filterStatusKelulusan;
@@ -310,6 +321,32 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       return matchesSearch && matchesJenis && matchesKelulusan && matchesKebekerjaan && matchesKejuruan;
     });
   }, [dbState.participants, searchQuery, filterJenisPelatihan, filterStatusKelulusan, filterStatusKebekerjaan, filterKejuruan]);
+
+  const filteredTypes = React.useMemo(() => {
+    const lowerSearchQuery = searchQuery.toLowerCase();
+    return dbState.trainingTypes.filter(t => 
+      !lowerSearchQuery || 
+      (t.nama || "").toLowerCase().includes(lowerSearchQuery) || 
+      (t.deskripsi || "").toLowerCase().includes(lowerSearchQuery)
+    );
+  }, [dbState.trainingTypes, searchQuery]);
+
+  const filteredKejuruan = React.useMemo(() => {
+    const lowerSearchQuery = searchQuery.toLowerCase();
+    return dbState.kejuruanList.filter(k => 
+      !lowerSearchQuery || 
+      (k.nama || "").toLowerCase().includes(lowerSearchQuery)
+    );
+  }, [dbState.kejuruanList, searchQuery]);
+
+  const filteredPrograms = React.useMemo(() => {
+    const lowerSearchQuery = searchQuery.toLowerCase();
+    return dbState.programs.filter(p => 
+      !lowerSearchQuery || 
+      (p.nama || "").toLowerCase().includes(lowerSearchQuery) || 
+      (p.kejuruan || "").toLowerCase().includes(lowerSearchQuery)
+    );
+  }, [dbState.programs, searchQuery]);
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -329,13 +366,14 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
     if (!pNama.trim()) return;
 
     const parseToTanggalPelatihan = (tanggalMulai: string): string => {
-      if (!tanggalMulai) return "23-Jan-24";
+      if (!tanggalMulai) return "15-May-25";
       const trimmed = tanggalMulai.trim();
       if (trimmed.match(/^\d{2}-[a-zA-Z]{3}-\d{2}$/)) return trimmed;
+      
       let year = "25";
-      if (trimmed.includes("2025") || trimmed.endsWith("25") || trimmed.startsWith("25")) year = "25";
-      else if (trimmed.includes("2026") || trimmed.endsWith("26") || trimmed.startsWith("26")) year = "26";
-      else if (trimmed.includes("2024") || trimmed.endsWith("24") || trimmed.startsWith("24")) year = "24";
+      if (trimmed.includes("2024") || trimmed.endsWith("-24") || trimmed.endsWith("/24") || trimmed.endsWith(" 24")) year = "24";
+      if (trimmed.includes("2026") || trimmed.endsWith("-26") || trimmed.endsWith("/26") || trimmed.endsWith(" 26")) year = "26";
+      if (trimmed.includes("2027") || trimmed.endsWith("-27") || trimmed.endsWith("/27") || trimmed.endsWith(" 27")) year = "27";
       return `15-May-${year}`;
     };
 
@@ -397,24 +435,24 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
   const startEditPart = (p: Participant) => {
     setEditingPartId(p.id);
     setPKodeTransaksi(p.kodeTransaksi || "");
-    setPNama(p.nama);
+    setPNama(p.nama || "");
     setPNik(p.nik || "");
     setPNoHp(p.noHp || "");
     setPEmail(p.email || "");
-    setPJenisKelamin(p.jenisKelamin);
-    setPAlamat(p.alamat);
+    setPJenisKelamin(p.jenisKelamin || "L");
+    setPAlamat(p.alamat || "");
     setPTempatLahir(p.tempatLahir || "");
-    setPTanggalLahir(p.tanggalLahir);
-    setPUsia(p.usia);
+    setPTanggalLahir(p.tanggalLahir || "");
+    setPUsia(p.usia || 0);
     setPPendidikanTerakhir(p.pendidikanTerakhir || "");
     setPDisabilitasTipe(p.disabilitasTipe || "");
-    setPPenyandangDisabilitas(p.penyandangDisabilitas);
+    setPPenyandangDisabilitas(p.penyandangDisabilitas || "Tidak");
     setPPernahBekerjaLuarNegeri(p.pernahBekerjaLuarNegeri || "Tidak");
     setPBerminatBekerjaLuarNegeri(p.berminatBekerjaLuarNegeri || "Tidak");
-    setPProgramPelatihan(p.programPelatihan);
-    setPKejuruan(p.kejuruan);
+    setPProgramPelatihan(p.programPelatihan || "");
+    setPKejuruan(p.kejuruan || "");
     setPMetodePelatihan(p.metodePelatihan || "Luring");
-    setPJenisPelatihan(p.jenisPelatihan);
+    setPJenisPelatihan(p.jenisPelatihan || "");
     setPAngkatan(p.angkatan || "");
     setPDurasi(p.durasi?.toString() || "");
     setPBiayaPelatihan(p.biayaPelatihan?.toString() || "");
@@ -422,16 +460,16 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
     setPTanggalSelesaiPelatihan(p.tanggalSelesaiPelatihan || "");
     setPAbsensi(p.absensi || "");
     setPStatusSelesaiPelatihan(p.statusSelesaiPelatihan || "");
-    setPStatusKelulusan(p.statusKelulusan);
+    setPStatusKelulusan(p.statusKelulusan || "Belum Lulus");
     setPSumberAnggaran(p.sumberAnggaran || "APBN");
-    setPStatusKebekerjaan(p.statusKebekerjaan);
+    setPStatusKebekerjaan(p.statusKebekerjaan || "Belum Bekerja");
     setPTempatBekerja(p.tempatBekerja || "");
     setPStatus(p.status || "");
-    p.jabatan && setPJabatan(p.jabatan || "");
+    setPJabatan(p.jabatan || "");
     setPTanggalPenempatan(p.tanggalPenempatan || "");
 
-    setPKategori(p.kategori);
-    setPTanggalPelatihan(p.tanggalPelatihan);
+    setPKategori(p.kategori || "Bukan Lansia");
+    setPTanggalPelatihan(p.tanggalPelatihan || "");
     setPLokasi(p.lokasi || "");
     setShowPartForm(true);
   };
@@ -487,40 +525,84 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
     setShowPartForm(false);
   };
 
-  // Sub-master additions
+  // Sub-master additions and edits
+  const startEditType = (t: TrainingType) => {
+    setEditingTypeId(t.id);
+    setNewTypeName(t.nama);
+    setNewTypeDesc(t.deskripsi || "");
+  };
+  
   const handleAddType = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTypeName.trim()) return;
-    const newType: TrainingType = {
-      id: `type-${Date.now()}`,
-      nama: newTypeName,
-      deskripsi: newTypeDesc
-    };
-    onUpdateDb({ trainingTypes: [...dbState.trainingTypes, newType] });
+    
+    if (editingTypeId) {
+      const updatedTypes = dbState.trainingTypes.map(t => 
+        t.id === editingTypeId ? { ...t, nama: newTypeName, deskripsi: newTypeDesc } : t
+      );
+      onUpdateDb({ trainingTypes: updatedTypes });
+      setEditingTypeId(null);
+    } else {
+      const newType: TrainingType = {
+        id: `type-${Date.now()}`,
+        nama: newTypeName,
+        deskripsi: newTypeDesc
+      };
+      onUpdateDb({ trainingTypes: [...dbState.trainingTypes, newType] });
+    }
     setNewTypeName("");
     setNewTypeDesc("");
+  };
+
+  const startEditKejuruan = (k: Kejuruan) => {
+    setEditingKejuruanId(k.id);
+    setNewKejuruanName(k.nama);
   };
 
   const handleAddKejuruan = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKejuruanName.trim()) return;
-    const newKej: Kejuruan = {
-      id: `kej-${Date.now()}`,
-      nama: newKejuruanName
-    };
-    onUpdateDb({ kejuruanList: [...dbState.kejuruanList, newKej] });
+    
+    if (editingKejuruanId) {
+      const updated = dbState.kejuruanList.map(k => 
+        k.id === editingKejuruanId ? { ...k, nama: newKejuruanName } : k
+      );
+      onUpdateDb({ kejuruanList: updated });
+      setEditingKejuruanId(null);
+    } else {
+      const newKej: Kejuruan = {
+        id: `kej-${Date.now()}`,
+        nama: newKejuruanName
+      };
+      onUpdateDb({ kejuruanList: [...dbState.kejuruanList, newKej] });
+    }
     setNewKejuruanName("");
+  };
+
+  const startEditProgram = (p: ProgramPelatihan) => {
+    setEditingProgramId(p.id);
+    setNewProgramName(p.nama);
+    setNewProgramKejuruan(p.kejuruan || "Teknologi Pengolahan Agroindustri");
   };
 
   const handleAddProgram = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProgramName.trim()) return;
-    const newProg: ProgramPelatihan = {
-      id: `prog-${Date.now()}`,
-      nama: newProgramName,
-      kejuruan: newProgramKejuruan
-    };
-    onUpdateDb({ programs: [...dbState.programs, newProg] });
+    
+    if (editingProgramId) {
+      const updated = dbState.programs.map(p => 
+        p.id === editingProgramId ? { ...p, nama: newProgramName, kejuruan: newProgramKejuruan } : p
+      );
+      onUpdateDb({ programs: updated });
+      setEditingProgramId(null);
+    } else {
+      const newProg: ProgramPelatihan = {
+        id: `prog-${Date.now()}`,
+        nama: newProgramName,
+        kejuruan: newProgramKejuruan
+      };
+      onUpdateDb({ programs: [...dbState.programs, newProg] });
+    }
     setNewProgramName("");
   };
 
@@ -848,7 +930,19 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       {activeTab === "types" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="font-semibold text-sm text-slate-800">Daftar Jenis Pelatihan (Database Jenis Pelatihan)</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="font-semibold text-sm text-slate-800">Daftar Jenis Pelatihan (Database Jenis Pelatihan)</h3>
+              <div className="relative max-w-[200px] w-full">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 w-full text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
             <div className="border border-slate-100 rounded-xl overflow-hidden">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -859,12 +953,19 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {dbState.trainingTypes.map(t => (
+                  {filteredTypes.map(t => (
                     <tr key={t.id} className="hover:bg-slate-50/50">
                       <td className="p-3 font-semibold text-slate-900">{t.nama}</td>
                       <td className="p-3 text-slate-500">{t.deskripsi || "-"}</td>
                       {canModify && (
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => startEditType(t)}
+                            className="text-slate-400 hover:text-indigo-600 p-1 rounded hover:bg-slate-100 mr-2"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => deleteType(t.id)}
                             className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-slate-100"
@@ -884,7 +985,14 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
           {/* Form adding dynamic types */}
           {canModify && (
             <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/50 space-y-3">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-500">Tambah Jenis Pelatihan Baru</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-500">
+                  {editingTypeId ? "Edit Jenis Pelatihan" : "Tambah Jenis Pelatihan Baru"}
+                </h3>
+                {editingTypeId && (
+                  <button type="button" onClick={() => { setEditingTypeId(null); setNewTypeName(''); setNewTypeDesc(''); }} className="text-[10px] text-rose-500 hover:underline">Batal</button>
+                )}
+              </div>
               <form onSubmit={handleAddType} className="space-y-3">
                 <div>
                   <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Nama Jenis Pelatihan</label>
@@ -910,7 +1018,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   type="submit"
                   className="w-full inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition-all"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Jenis Pelatihan
+                  <Plus className="w-3.5 h-3.5" /> {editingTypeId ? "Simpan Perubahan" : "Tambah Jenis Pelatihan"}
                 </button>
               </form>
             </div>
@@ -922,7 +1030,19 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       {activeTab === "kejuruan" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="font-semibold text-sm text-slate-800">Daftar Kejuruan (Database Kejuruan)</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="font-semibold text-sm text-slate-800">Daftar Kejuruan (Database Kejuruan)</h3>
+              <div className="relative max-w-[200px] w-full">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 w-full text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
             <div className="border border-slate-100 rounded-xl overflow-hidden">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -932,11 +1052,18 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {dbState.kejuruanList.map(k => (
+                  {filteredKejuruan.map(k => (
                     <tr key={k.id} className="hover:bg-slate-50/50">
                       <td className="p-3 font-semibold text-slate-900">{k.nama}</td>
                       {canModify && (
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => startEditKejuruan(k)}
+                            className="text-slate-400 hover:text-indigo-600 p-1 rounded hover:bg-slate-100 mr-2"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => deleteKejuruan(k.id)}
                             className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-slate-100"
@@ -956,7 +1083,14 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
           {/* Form adding dynamic kejuruan */}
           {canModify && (
             <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/50 space-y-3">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-500">Tambah Kejuruan Baru</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-500">
+                  {editingKejuruanId ? "Edit Kejuruan" : "Tambah Kejuruan Baru"}
+                </h3>
+                {editingKejuruanId && (
+                  <button type="button" onClick={() => { setEditingKejuruanId(null); setNewKejuruanName(''); }} className="text-[10px] text-rose-500 hover:underline">Batal</button>
+                )}
+              </div>
               <form onSubmit={handleAddKejuruan} className="space-y-3">
                 <div>
                   <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Nama Bidang Kejuruan</label>
@@ -973,7 +1107,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   type="submit"
                   className="w-full inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition-all"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Kejuruan
+                  <Plus className="w-3.5 h-3.5" /> {editingKejuruanId ? "Simpan Perubahan" : "Tambah Kejuruan"}
                 </button>
               </form>
             </div>
@@ -985,7 +1119,19 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
       {activeTab === "programs" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="font-semibold text-sm text-slate-800">Daftar Program Pelatihan (Database Program Pelatihan)</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="font-semibold text-sm text-slate-800">Daftar Program Pelatihan (Database Program Pelatihan)</h3>
+              <div className="relative max-w-[200px] w-full">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 w-full text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
             <div className="border border-slate-100 rounded-xl overflow-hidden">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -996,12 +1142,19 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {dbState.programs.map(p => (
+                  {filteredPrograms.map(p => (
                     <tr key={p.id} className="hover:bg-slate-50/50">
                       <td className="p-3 font-semibold text-slate-900">{p.nama}</td>
                       <td className="p-3 text-slate-500">{p.kejuruan}</td>
                       {canModify && (
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => startEditProgram(p)}
+                            className="text-slate-400 hover:text-indigo-600 p-1 rounded hover:bg-slate-100 mr-2"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => deleteProgram(p.id)}
                             className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-slate-100"
@@ -1021,7 +1174,14 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
           {/* Form adding dynamic programs */}
           {canModify && (
             <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/50 space-y-3">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-500">Tambah Program Baru</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-500">
+                  {editingProgramId ? "Edit Program" : "Tambah Program Baru"}
+                </h3>
+                {editingProgramId && (
+                  <button type="button" onClick={() => { setEditingProgramId(null); setNewProgramName(''); setNewProgramKejuruan('Teknologi Pengolahan Agroindustri'); }} className="text-[10px] text-rose-500 hover:underline">Batal</button>
+                )}
+              </div>
               <form onSubmit={handleAddProgram} className="space-y-3">
                 <div>
                   <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Nama Program Pelatihan</label>
@@ -1050,7 +1210,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   type="submit"
                   className="w-full inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition-all"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Program
+                  <Plus className="w-3.5 h-3.5" /> {editingProgramId ? "Simpan Perubahan" : "Tambah Program"}
                 </button>
               </form>
             </div>
@@ -1060,7 +1220,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
       {/* FULL PARTICIPANT MODAL FORM (CREATE / EDIT) */}
       {showPartForm && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-start justify-center pt-8 p-4 z-50 overflow-y-auto animate-fade-in" id="modal-container">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-start justify-center pt-8 p-4 z-[2000] overflow-y-auto animate-fade-in" id="modal-container">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-2xl w-full max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}

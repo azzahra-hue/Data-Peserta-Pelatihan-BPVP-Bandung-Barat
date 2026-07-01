@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { DatabaseState } from '../types';
+import { DatabaseState, Participant } from '../types';
 
 interface AlumniMapProps {
   dbState?: DatabaseState;
+  participants?: Participant[];
 }
 
 const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
@@ -40,14 +41,15 @@ const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "tangerang": { lat: -6.1783, lng: 106.6319 }
 };
 
-export default function AlumniMap({ dbState }: AlumniMapProps) {
+export default function AlumniMap({ dbState, participants }: AlumniMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
   // Extract placed participants
   const displayLocations = useMemo(() => {
-    const placedAlumni = (dbState?.participants || []).filter(
+    const dataList = participants || dbState?.participants || [];
+    const placedAlumni = dataList.filter(
       (p) => p.statusKelulusan === "Lulus" && (p.statusKebekerjaan === "Bekerja" || p.statusKebekerjaan === "Wirausaha")
     );
 
@@ -55,7 +57,9 @@ export default function AlumniMap({ dbState }: AlumniMapProps) {
 
     placedAlumni.forEach((p, index) => {
       if (!p.lokasi || p.lokasi.trim() === "") return;
-      const cleanLokasi = p.lokasi.trim();
+      const rawLokasi = p.lokasi.trim();
+      // Format to Title Case to merge "bandung", "Bandung", "BANDUNG"
+      const cleanLokasi = rawLokasi.toLowerCase().split(' ').filter(Boolean).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       const lookupKey = cleanLokasi.toLowerCase();
 
       // Find coordinates from our pre-defined dictionary, or try to fuzzy match
@@ -87,15 +91,8 @@ export default function AlumniMap({ dbState }: AlumniMapProps) {
 
     const locationsList = Object.values(dynamicLocationsMap);
 
-    return locationsList.length > 0 ? locationsList : [
-      { id: '1', name: 'PT. Indofood CBP (Bandung Barat)', position: { lat: -6.8402, lng: 107.4580 }, count: 150 },
-      { id: '2', name: 'Kopi Kenangan (Bandung)', position: { lat: -6.9175, lng: 107.6191 }, count: 120 },
-      { id: '3', name: 'Eiger Adventure (Kab. Bandung)', position: { lat: -7.0189, lng: 107.5255 }, count: 85 },
-      { id: '4', name: 'Area Cimahi (Kawasan Industri)', position: { lat: -6.8778, lng: 107.5501 }, count: 850 },
-      { id: '5', name: 'Area Subang', position: { lat: -6.5562, lng: 107.7562 }, count: 600 },
-      { id: '6', name: 'Area Purwakarta', position: { lat: -6.5529, lng: 107.4431 }, count: 400 },
-    ];
-  }, [dbState?.participants]);
+    return locationsList;
+  }, [dbState?.participants, participants]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
