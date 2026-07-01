@@ -713,6 +713,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                     <th className="p-3">Gender / Usia</th>
                     <th className="p-3">Inklusi Disabilitas</th>
                     <th className="p-3">Kebekerjaan</th>
+                    <th className="p-3">Lokasi Penempatan</th>
                     <th className="p-3">Alamat</th>
                     {canModify && <th className="p-3 text-right">Aksi</th>}
                   </tr>
@@ -720,7 +721,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {paginatedParticipants.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-12 text-slate-400">
+                      <td colSpan={10} className="text-center py-12 text-slate-400">
                         Tidak ada data peserta pelatihan yang sesuai dengan kriteria filter.
                       </td>
                     </tr>
@@ -764,9 +765,18 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                             {p.statusKebekerjaan}
                           </span>
                           {p.tempatBekerja && (
-                            <span className="block text-[10px] text-slate-400 mt-0.5 truncate max-w-[120px]" title={`${p.tempatBekerja} (${p.lokasi})`}>
-                              {p.tempatBekerja} ({p.lokasi})
+                            <span className="block text-[10px] text-slate-400 mt-0.5 truncate max-w-[120px]" title={p.tempatBekerja}>
+                              {p.tempatBekerja}
                             </span>
+                          )}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {p.lokasi ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-sky-50 text-sky-700 rounded text-[10px] font-bold">
+                              📍 {p.lokasi}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-300">-</span>
                           )}
                         </td>
                         <td className="p-3 max-w-[180px] truncate text-slate-400" title={p.alamat}>{p.alamat}</td>
@@ -1519,7 +1529,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   {/* Lokasi Kerja */}
                   <div>
                     <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1 flex justify-between items-center">
-                      <span>Lokasi Kerja (Kota/Kab)</span>
+                      <span>Lokasi Penempatan (Kota/Kab)</span>
                       {pTempatBekerja && pTempatBekerja.trim() && (
                         <button
                           type="button"
