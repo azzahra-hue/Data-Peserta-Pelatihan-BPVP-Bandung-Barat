@@ -1413,9 +1413,8 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
 
                 {/* Alamat Domisili */}
                 <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Alamat Lengkap Domisili *</label>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Alamat Lengkap Domisili</label>
                   <textarea
-                    required
                     value={pAlamat}
                     onChange={(e) => setPAlamat(e.target.value)}
                     placeholder="Tuliskan alamat lengkap berserta RT/RW, kelurahan, kecamatan, kota/kabupaten"
@@ -1694,7 +1693,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                   {/* Lokasi Kerja */}
                   <div>
                     <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1 flex justify-between items-center">
-                      <span>Lokasi Penempatan (Kota/Kab)</span>
+                      <span>Lokasi Penempatan (Kota/Kab) *</span>
                       {pTempatBekerja && pTempatBekerja.trim() && (
                         <button
                           type="button"
@@ -1716,6 +1715,7 @@ export default function DatabaseTables({ dbState, onUpdateDb, onResetDb, current
                     <div className="relative">
                       <input
                         type="text"
+                        required={pStatusKebekerjaan !== "Belum Bekerja"}
                         value={pLokasi}
                         onChange={(e) => setPLokasi(e.target.value)}
                         onBlur={async () => {
