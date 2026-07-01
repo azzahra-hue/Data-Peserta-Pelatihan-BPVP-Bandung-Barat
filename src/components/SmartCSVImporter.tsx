@@ -89,7 +89,7 @@ export default function SmartCSVImporter({
           { key: "angkatan", label: "Angkatan", required: false, candidates: ["angkatan", "batch", "angkatan_pelatihan"], description: "Contoh: Angkatan I, II, III" },
           { key: "durasi", label: "Durasi (JP)", required: false, candidates: ["durasi (jp)", "durasi", "jp", "hours", "duration"], description: "Jumlah Jam Pelajaran" },
           { key: "biayaPelatihan", label: "Biaya Pelatihan", required: false, candidates: ["biaya pelatihan", "biaya", "cost", "price", "biaya_pelatihan"], description: "Contoh: APBN, Mandiri, dll" },
-          { key: "tanggalMulaiPelatihan", label: "Tanggal Mulai Pelatihan", required: true, candidates: ["tanggal mulai pelatihan", "mulai pelatihan", "tanggal mulai", "start date", "mulai"], description: "Format: DD/MM/YYYY atau YYYY-MM-DD" },
+          { key: "tanggalMulaiPelatihan", label: "Tanggal Mulai Pelatihan", required: false, candidates: ["tanggal mulai pelatihan", "mulai pelatihan", "tanggal mulai", "start date", "mulai"], description: "Format: DD/MM/YYYY atau YYYY-MM-DD" },
           { key: "tanggalSelesaiPelatihan", label: "Tanggal Selesai Pelatihan", required: false, candidates: ["tanggal selesai pelatihan", "selesai pelatihan", "tanggal selesai", "end date", "selesai"], description: "Format: DD/MM/YYYY atau YYYY-MM-DD" },
           { key: "absensi", label: "Absensi", required: false, candidates: ["absensi", "kehadiran", "attendance"], description: "Persentase/Jumlah kehadiran" },
           { key: "statusSelesaiPelatihan", label: "Status Selesai Pelatihan", required: false, candidates: ["status selesai pelatihan", "status selesai", "selesai"], description: "Contoh: Selesai, Mengundurkan Diri" },
@@ -382,8 +382,11 @@ export default function SmartCSVImporter({
         const val = item[target.key];
         
         let isRequired = target.required;
-        if (target.key === "lokasi" && item.statusKebekerjaan === "Belum Bekerja") {
-          isRequired = false;
+        if (target.key === "lokasi") {
+          const sk = String(item.statusKebekerjaan || "").trim().toLowerCase();
+          if (sk !== "bekerja" && sk !== "wirausaha") {
+            isRequired = false;
+          }
         }
 
         if (isRequired && (val === undefined || val === null || val === "")) {
@@ -453,7 +456,10 @@ export default function SmartCSVImporter({
         if (!newItem.usia) newItem.usia = 25;
         if (!newItem.tanggalLahir) newItem.tanggalLahir = "01/01/2000";
         if (!newItem.alamat) newItem.alamat = "Jl. Raya Lembang, Bandung Barat";
-        if (newItem.statusKebekerjaan !== "Belum Bekerja" && !newItem.lokasi) newItem.lokasi = "Belum Diketahui";
+        const sk = String(newItem.statusKebekerjaan || "").trim().toLowerCase();
+        if ((sk === "bekerja" || sk === "wirausaha") && !newItem.lokasi) {
+          newItem.lokasi = "Belum Diketahui";
+        }
         if (!newItem.tanggalMulaiPelatihan) newItem.tanggalMulaiPelatihan = "01/01/2026";
         newItem.kategori = Number(newItem.usia) >= 60 ? "Lansia" : "Bukan Lansia";
       } else {
